@@ -12,6 +12,7 @@ dist/
 !.example/plugin
 *.swp
 *.swo
+AGENTS.md
 
 # OS
 .DS_Store

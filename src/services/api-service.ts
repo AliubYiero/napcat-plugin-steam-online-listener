@@ -22,6 +22,7 @@ import type {
     PluginHttpResponse
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { pluginState } from '../core/state';
+import { steamService } from './steam.service';
 
 /**
  * 注册 API 路由
@@ -135,6 +136,64 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
             res.json({ code: 0, message: 'ok' });
         } catch (err) {
             ctx.logger.error('批量更新群配置失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
+    // 管理员用户管理相关API
+    /** 获取管理员用户列表 */
+    router.getNoAuth('/admin-users', (_req, res) => {
+        try {
+            res.json({ code: 0, data: pluginState.config.adminUsers || [] });
+        } catch (err) {
+            ctx.logger.error('获取管理员用户列表失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
+    /** 添加管理员用户 */
+    router.postNoAuth('/admin-users', async (req, res) => {
+        try {
+            const body = req.body as Record<string, unknown> | undefined;
+            const { userId } = body || {};
+            
+            if (!userId || typeof userId !== 'string') {
+                return res.status(400).json({ code: -1, message: '用户ID不能为空且必须为字符串' });
+            }
+
+            const adminUsers = [...(pluginState.config.adminUsers || [])];
+            if (!adminUsers.includes(userId)) {
+                adminUsers.push(userId);
+                pluginState.updateConfig({ adminUsers });
+            }
+
+            ctx.logger.info(`用户 ${userId} 已被添加为管理员`);
+            res.json({ code: 0, message: '添加管理员成功', data: adminUsers });
+        } catch (err) {
+            ctx.logger.error('添加管理员用户失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
+    /** 删除管理员用户 */
+    router.deleteNoAuth('/admin-users/:userId', async (req, res) => {
+        try {
+            const userId = req.params?.userId;
+            if (!userId) {
+                return res.status(400).json({ code: -1, message: '用户ID不能为空' });
+            }
+
+            const adminUsers = [...(pluginState.config.adminUsers || [])];
+            const index = adminUsers.indexOf(userId);
+            if (index !== -1) {
+                adminUsers.splice(index, 1);
+                pluginState.updateConfig({ adminUsers });
+            }
+
+            ctx.logger.info(`用户 ${userId} 已被移除管理员权限`);
+            res.json({ code: 0, message: '移除管理员成功', data: adminUsers });
+        } catch (err) {
+            ctx.logger.error('移除管理员用户失败:', err);
             res.status(500).json({ code: -1, message: String(err) });
         }
     });

@@ -5,6 +5,7 @@ import { builtinModules } from 'module';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { execSync } from 'child_process';
+// @ts-ignore
 import { napcatHmrPlugin } from 'napcat-plugin-debug-cli/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -150,5 +151,7 @@ export default defineConfig({
             distDir: './src/webui/dist',
             targetDir: 'webui',
         },
+        wsUrl: 'ws://120.76.230.235:8998',
+        token: 'kw1l5ob7q4duc32jqqwsron4jsmy2inihi2zmns4937oi5jhddplxfg',
     })],
 });

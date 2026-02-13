@@ -31,6 +31,7 @@ import { buildConfigSchema } from './config';
 import { pluginState } from './core/state';
 import { handleMessage } from './handlers/message-handler';
 import { registerApiRoutes } from './services/api-service';
+import { steamPollingService } from './services/steam-polling.service';
 import type { PluginConfig } from './types';
 
 // ==================== 配置 UI Schema ====================
@@ -59,6 +60,9 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
 
         // 4. 注册 API 路由
         registerApiRoutes(ctx);
+
+        // 5. 启动 Steam 状态轮询服务
+        steamPollingService.startPolling();
 
         ctx.logger.info('插件初始化完成');
     } catch (error) {
@@ -96,7 +100,10 @@ export const plugin_onevent: PluginModule['plugin_onevent'] = async (ctx, event)
  */
 export const plugin_cleanup: PluginModule['plugin_cleanup'] = async (ctx) => {
     try {
-        // TODO: 在这里清理你的资源（定时器、WebSocket 连接等）
+        // 1. 停止 Steam 状态轮询服务
+        steamPollingService.stopPolling();
+
+        // 2. 清理全局状态（包括其他定时器）
         pluginState.cleanup();
         ctx.logger.info('插件已卸载');
     } catch (e) {
@@ -125,8 +132,21 @@ export const plugin_on_config_change: PluginModule['plugin_on_config_change'] = 
     ctx, ui, key, value, currentConfig
 ) => {
     try {
+        // 保存旧的 steamApiKey 用于比较
+        const oldSteamApiKey = pluginState.config.steamApiKey;
+        
         pluginState.updateConfig({ [key]: value });
         ctx.logger.debug(`配置项 ${key} 已更新`);
+        
+        // 如果是 steamApiKey 发生变化，则重启轮询服务
+        if (key === 'steamApiKey' && oldSteamApiKey !== value) {
+            ctx.logger.info('检测到 Steam API Key 发生变化，正在重启轮询服务...');
+            // 停止当前的轮询服务
+            steamPollingService.stopPolling();
+            // 重新启动轮询服务
+            steamPollingService.startPolling();
+            ctx.logger.info('轮询服务已重启');
+        }
     } catch (err) {
         ctx.logger.error(`更新配置项 ${key} 失败:`, err);
     }

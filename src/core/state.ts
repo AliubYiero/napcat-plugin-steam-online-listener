@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import type { NapCatPluginContext, PluginLogger } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { DEFAULT_CONFIG } from '../config';
-import type { PluginConfig, GroupConfig } from '../types';
+import type { PluginConfig, GroupConfig, UserConfig } from '../types';
 
 // ==================== 配置清洗工具 ====================
 
@@ -35,7 +35,25 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.debug === 'boolean') out.debug = raw.debug;
     if (typeof raw.commandPrefix === 'string') out.commandPrefix = raw.commandPrefix;
     if (typeof raw.cooldownSeconds === 'number') out.cooldownSeconds = raw.cooldownSeconds;
-
+    if (typeof raw.steamApiKey === 'string') out.steamApiKey = raw.steamApiKey;
+ 
+    // 处理 adminUsers - 从字符串或数组转换为数组
+    if (typeof raw.adminUsers === 'string') {
+        // 如果是字符串（来自WebUI），按逗号分割
+        out.adminUsers = raw.adminUsers
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+    } else if (Array.isArray(raw.adminUsers)) {
+        // 如果是数组（来自配置文件），直接使用
+        out.adminUsers = raw.adminUsers
+            .map(id => String(id))
+            .filter(id => id.length > 0);
+    } else if (raw.adminUsers === undefined || raw.adminUsers === null) {
+        // 如果未定义，使用默认值
+        out.adminUsers = DEFAULT_CONFIG.adminUsers || [];
+    }
+ 
     // 群配置清洗
     if (isObject(raw.groupConfigs)) {
         for (const [groupId, groupConfig] of Object.entries(raw.groupConfigs)) {
@@ -48,7 +66,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
         }
     }
 
-    // TODO: 在这里添加你的配置项清洗逻辑
+
 
     return out;
 }
@@ -258,7 +276,15 @@ class PluginState {
      * 检查群是否启用（默认启用，除非明确设置为 false）
      */
     isGroupEnabled(groupId: string): boolean {
-        return this.config.groupConfigs[groupId]?.enabled !== false;
+        return this.config.groupConfigs[groupId]?.enabled === true;
+    }
+
+    /**
+     * 检查用户是否为管理员
+     */
+    isUserAdmin(userId: string): boolean {
+        const adminUsers = this.config.adminUsers || [];
+        return adminUsers.includes(userId);
     }
 
     // ==================== 统计 ====================
