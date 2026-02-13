@@ -23,7 +23,7 @@ export async function handleHelp(ctx: NapCatPluginContext, event: OB11Message, a
         `${prefix}steam-reset - 清空当前群组的steam绑定数据`,
         '',
         '[= 辅助指令 =]',
-        `${prefix}help - 显示帮助信息`,
+        `${prefix}steam-help - 显示帮助信息`,
         // `${prefix}ping - 测试连通性`,
         // `${prefix}status - 查看运行状态`,
         `${prefix}steam-search <STEAM昵称> - 查询Steam ID64`,

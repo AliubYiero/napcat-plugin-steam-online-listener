@@ -16,8 +16,6 @@ import { pluginState } from '../core/state';
 
 // 导入各个指令处理器
 import { handleHelp } from './help.handler';
-import { handlePing } from './ping.handler';
-import { handleStatus } from './status.handler';
 import { handleSteamSearch } from './steam-search.handler';
 import { handleSteamBind } from './steam-bind.handler';
 import { handleSteamBindNickname } from './steam-bind-nickname.handler';
@@ -26,7 +24,6 @@ import { handleSteamList } from './steam-list.handler';
 import { handleSteamRemove } from './steam-remove.handler';
 import { handleSteamReset } from './steam-reset.handler';
 import { handleSteamPolling } from './steam-polling.handler';
-import { handleAddGroup } from './add-group.handler';
 import { handleAdmin } from './admin.handler';
 import { handleGroup } from './group.handler';
 
@@ -60,7 +57,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         // TODO: 在这里实现你的命令处理逻辑
         switch (subCommand) {
             case 'help':
-                await handleHelp(ctx, event, args);
+                // await handleHelp(ctx, event, args);
                 break;
             case 'steam-help':
                 await handleHelp(ctx, event, args);
@@ -103,7 +100,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 break;
             default:
                 // TODO: 在这里处理你的主要命令逻辑
-	            await handleHelp(ctx, event, args);
+	            // await handleHelp(ctx, event, args);
                 break;
         }
     } catch (error) {
