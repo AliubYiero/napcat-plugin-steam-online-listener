@@ -5,13 +5,41 @@
 
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
-import { sendReply } from './utils';
+import { sendReply, createImageMessage } from './utils';
 import { pluginState } from '../core/state';
+import { resolve, join } from 'path';
+import fs from 'fs';
 
 /**
  * 处理 help 指令
+ * 管理员私聊发送 admin-help.png，群聊发送 user-help.png
+ * 图片不存在时回退到文本帮助
  */
 export async function handleHelp(ctx: NapCatPluginContext, event: OB11Message, args: string[]): Promise<void> {
+    const userId = String(event.user_id);
+    const isPrivateMessage = event.message_type === 'private';
+    const isAdmin = isPrivateMessage && pluginState.isUserAdmin(userId);
+
+    // 构建 assets 目录路径: ctx.dataPath 的父目录下的 assets 文件夹
+    const assetsDir = join(ctx.dataPath, '..', 'assets');
+    const imageFileName = isAdmin ? 'admin-help.png' : 'user-help.png';
+    const imagePath = resolve(assetsDir, imageFileName);
+
+    // 检查图片是否存在
+    if (fs.existsSync(imagePath)) {
+        // 发送图片
+        const imageMessage = createImageMessage(imagePath);
+        await sendReply(ctx, event, imageMessage);
+    } else {
+        // 回退到文本帮助
+        await sendTextHelp(ctx, event, isAdmin);
+    }
+}
+
+/**
+ * 发送文本帮助信息
+ */
+async function sendTextHelp(ctx: NapCatPluginContext, event: OB11Message, isAdmin: boolean): Promise<void> {
     const prefix = pluginState.config.commandPrefix;
     const helpLines = [
         `[= 插件帮助 =]`,
@@ -38,12 +66,7 @@ export async function handleHelp(ctx: NapCatPluginContext, event: OB11Message, a
         `• 或使用 ${prefix} search <完整Steam个人资料链接>`,
     ];
 
-    // 检查用户是否为管理员，如果是则显示管理员指令
-    const userId = String(event.user_id);
-    const isPrivateMessage = event.message_type === 'private';
-    const isUserInWhitelist = isPrivateMessage && pluginState.isUserAdmin(userId);
-
-    if (isUserInWhitelist) {
+    if (isAdmin) {
         helpLines.push('');
         helpLines.push('[= 管理员指令 =]');
         helpLines.push(`${prefix} polling - 手动触发一次Steam状态轮询（仅私聊可用）`);
