@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { PluginStatus } from '../types'
-import { IconPower, IconClock, IconActivity, IconDownload, IconRefresh, IconTerminal } from '../components/icons'
+import { IconPower, IconClock, IconActivity, IconDownload, IconRefresh, IconTerminal, IconSteam, IconUsers } from '../components/icons'
 
 interface StatusPageProps {
     status: PluginStatus | null
@@ -86,6 +86,24 @@ export default function StatusPage({ status, onRefresh }: StatusPageProps) {
         },
     ]
 
+    // Steam 相关统计卡片
+    const steamStatCards = [
+        {
+            label: 'Steam API',
+            value: config.steamApiKey ? '已配置' : '未配置',
+            icon: <IconSteam size={18} />,
+            color: config.steamApiKey ? 'text-blue-500' : 'text-gray-400',
+            bg: config.steamApiKey ? 'bg-blue-500/10' : 'bg-gray-500/10',
+        },
+        {
+            label: '轮询间隔',
+            value: `${config.pollingIntervalSeconds || 60}秒`,
+            icon: <IconClock size={18} />,
+            color: 'text-cyan-500',
+            bg: 'bg-cyan-500/10',
+        },
+    ]
+
     return (
         <div className="space-y-6">
             {/* 统计卡片 */}
@@ -119,6 +137,22 @@ export default function StatusPage({ status, onRefresh }: StatusPageProps) {
                     <InfoRow label="命令前缀" value={config.commandPrefix} />
                     <InfoRow label="冷却时间" value={`${config.cooldownSeconds} 秒`} />
                     <InfoRow label="调试模式" value={config.debug ? '开启' : '关闭'} />
+                </div>
+            </div>
+
+            {/* Steam 配置概览 */}
+            <div className="card p-5 hover-lift animate-fade-in-up">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <IconSteam size={16} className="text-gray-400" />
+                        Steam 配置
+                    </h3>
+                </div>
+                <div className="space-y-3">
+                    <InfoRow label="API Key" value={config.steamApiKey ? '已配置' : '未配置'} />
+                    <InfoRow label="轮询间隔" value={`${config.pollingIntervalSeconds || 60} 秒`} />
+                    <InfoRow label="管理员数" value={String(config.adminUsers?.length || 0)} />
+                    <InfoRow label="推送类型" value={(config.notifyStatusTypes || []).join(', ') || '全部'} />
                 </div>
             </div>
         </div>
