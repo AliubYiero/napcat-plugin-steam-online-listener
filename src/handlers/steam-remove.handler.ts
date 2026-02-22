@@ -6,9 +6,13 @@
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { sendReply, getCooldownRemaining, setCooldown } from './utils';
-import { findSteamBindItem, updateSteamBindItem } from './steam-utils';
+import { 
+    findSteamBindItem, 
+    updateSteamBindItem,
+    loadSteamBindData, 
+    saveSteamBindData 
+} from './steam-utils';
 import { pluginState } from '../core/state';
-import { loadSteamBindData, saveSteamBindData } from './steam-utils';
 
 /**
  * 处理 steam-remove 指令
