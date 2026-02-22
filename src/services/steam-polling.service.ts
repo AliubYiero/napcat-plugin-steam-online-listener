@@ -15,8 +15,6 @@ import {
 	sendPrivateMessage,
 } from '../handlers/utils';
 import type { SteamBindItem } from '../types';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // ==================== 轮询服务类 ====================
 

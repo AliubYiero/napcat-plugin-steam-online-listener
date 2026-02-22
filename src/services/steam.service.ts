@@ -4,7 +4,6 @@
  */
 
 import { pluginState } from '../core/state';
-import type { SkinflowSteamIDResponse } from '../types';
 
 // ==================== Steam API 响应类型定义 ====================
 

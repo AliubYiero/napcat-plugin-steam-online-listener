@@ -41,15 +41,6 @@ export interface GroupConfig {
     // TODO: 在这里添加群级别的配置项
 }
 
-/**
- * 用户配置
- */
-export interface UserConfig {
-    /** 是否允许此用户使用插件功能 */
-    enabled?: boolean;
-    // TODO: 在这里添加用户级别的配置项
-}
-
 // ==================== API 响应 ====================
 
 /**
@@ -62,42 +53,6 @@ export interface ApiResponse<T = unknown> {
     message?: string;
     /** 响应数据（仅成功时返回） */
     data?: T;
-}
-
-// ==================== Steam ID 查询相关类型 ====================
-
-/** Steam ID 详细信息 */
-export interface SteamIDDetail {
-    universe: number;
-    type: number;
-    instance: number;
-    accountid: number;
-}
-
-/** Skinflow API 响应格式 */
-export interface SkinflowSteamIDResponse {
-    steamID: SteamIDDetail;
-    name: string;
-    onlineState: string;
-    stateMessage: string;
-    privacyState: string;
-    visibilityState: string;
-    avatarHash: string;
-    vacBanned: boolean;
-    gameBan: number;
-    tradeBanState: string;
-    isLimitedAccount: boolean;
-    customURL: string;
-    memberSince: string;
-    location: string;
-    realName: string;
-    steamLevel: number;
-    friendsCount: number;
-    steamID2: string;
-    steamID3: string;
-    steamID64: string;
-    steamHex: string;
-    ban: boolean;
 }
 
 // ==================== Steam 绑定数据相关类型 ====================
