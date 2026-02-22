@@ -202,3 +202,13 @@ export function IconSun({ size, className }: IconProps = defaultProps) {
         </svg>
     )
 }
+
+/** Steam */
+export function IconSteam({ size, className }: IconProps = defaultProps) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+        </svg>
+    )
+}
