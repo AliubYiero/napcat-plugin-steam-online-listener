@@ -47,35 +47,35 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
 
         
         // 检查命令前缀
-        const prefix = '#';
+        const prefix = pluginState.config.commandPrefix;
         if (!rawMessage.startsWith(prefix)) return;
         
         // 解析命令参数
         const args = rawMessage.slice(prefix.length).trim().split(/\s+/);
-        const subCommand = args[0]?.toLowerCase() || '';
-        switch (subCommand) {
-            case 'steam-help':
+        const mainCommand = args[0]?.toLowerCase() || '';
+        switch (mainCommand) {
+            case 'help':
                 await handleHelp(ctx, event, args);
                 break;
-            case 'steam-search':
+            case 'search':
                 await handleSteamSearch(ctx, event, args);
                 break;
-            case 'steam-bind':
+            case 'bind':
                 await handleSteamBind(ctx, event, args);
                 break;
-            case 'steam-bind-batch':
+            case 'bind-batch':
                 await handleSteamBindBatch(ctx, event, args);
                 break;
-            case 'steam-list':
+            case 'list':
                 await handleSteamList(ctx, event, args);
                 break;
-            case 'steam-reset':
+            case 'reset':
                 await handleSteamReset(ctx, event, args);
                 break;
-            case 'steam-remove':
+            case 'remove':
                 await handleSteamRemove(ctx, event, args);
                 break;
-            case 'steam-polling':
+            case 'polling':
                 await handleSteamPolling(ctx, event, args);
                 break;
             case 'admin':
