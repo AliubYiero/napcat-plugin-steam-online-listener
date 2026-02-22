@@ -15,8 +15,10 @@ export default function SteamManagementPage() {
         setLoading(true)
         try {
             const params: { fromId?: string; type?: 'group' | 'private' } = {}
-            if (filterFromId && filterType !== 'all') {
+            if (filterFromId) {
                 params.fromId = filterFromId
+            }
+            if (filterType !== 'all') {
                 params.type = filterType
             }
             const res = await getSteamBinds(params.fromId, params.type)
