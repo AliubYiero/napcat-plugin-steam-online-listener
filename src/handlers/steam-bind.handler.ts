@@ -12,6 +12,14 @@ import { findSteamBindItem, updateSteamBindItem } from './steam-utils';
 import type { SteamBindItem } from '../types';
 import { pluginState } from '../core/state';
 import { steamService } from '../services/steam.service';
+import { steamPollingService } from '../services/steam-polling.service';
+
+/**
+ * 验证 Steam ID 是否为纯数字格式
+ */
+function isValidSteamId64( steamId: string ): boolean {
+	return /^\d+$/.test( steamId );
+}
 
 /**
  * 处理 steam-bind 指令
@@ -37,6 +45,17 @@ export async function handleSteamBind( ctx: NapCatPluginContext, event: OB11Mess
 	try {
 		let steamId = args[ 1 ];
 		const nickname = args.length > 2 ? args[ 2 ] : undefined;
+		
+		// 验证 Steam ID 格式：如果不是纯数字，尝试解析为自定义 ID
+		if ( !isValidSteamId64( steamId ) ) {
+			pluginState.logger.debug( `Steam ID 不是纯数字格式，尝试解析为自定义 ID: ${ steamId }` );
+			const resolvedId = await steamService.getSteamID64( steamId );
+			if ( !resolvedId ) {
+				await sendReply( ctx, event, `Steam ID 格式无效，请输入有效的 Steam ID64（纯数字）或自定义 ID` );
+				return;
+			}
+			steamId = resolvedId;
+		}
 		
 		// 验证用户是否存在
 		let playerSummary = await steamService.getPlayerSummary( steamId );
@@ -105,6 +124,15 @@ export async function handleSteamBind( ctx: NapCatPluginContext, event: OB11Mess
 		
 		// 更新绑定数据
 		updateSteamBindItem( bindItem );
+		
+		// 绑定完成后手动触发一次状态查询
+		try {
+			await steamPollingService.pollSteamStatuses();
+			pluginState.logger.debug( `绑定完成后手动触发状态查询成功` );
+		} catch ( error ) {
+			pluginState.logger.warn( `绑定完成后状态查询失败:`, error );
+			// 不影响绑定成功的提示，静默处理错误
+		}
 		
 		await sendReply( ctx, event, `成功绑定 Steam 用户: ${ playerSummary.personaname } (ID: ${ steamId })${ nickname ? `，昵称: ${ nickname }` : '' }` );
 		pluginState.incrementProcessed();

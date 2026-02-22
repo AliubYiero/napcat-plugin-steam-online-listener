@@ -323,8 +323,27 @@ class SteamPollingService {
 				: ( change.newStatus.gameextrainfo || '' );
 			const hasGameName = !!gameName;
 			
-			// 固定宽度, 高度
-			const svgWidth = 400;
+			// 动态计算宽度
+			const MIN_SVG_WIDTH = 400;
+			const leftPadding = 115; // 文本起始 x 坐标
+			const rightPadding = 20; // 右侧留白
+			
+			// 计算第一行宽度：昵称 + 自定义昵称
+			const nicknameFontSize = 18;
+			let line1Text = change.newStatus.personaname || '';
+			if ( fromInfo.nickname ) {
+				line1Text += ` (${ fromInfo.nickname })`;
+			}
+			const line1Width = this.calculateTextWidth( line1Text, nicknameFontSize );
+			
+			// 计算第三行宽度：游戏名称（如果存在）
+			const gameNameFontSize = 16;
+			const line3Text = gameName || '';
+			const line3Width = this.calculateTextWidth( line3Text, gameNameFontSize );
+			
+			// 取最大宽度，并确保不小于最小宽度
+			const maxTextWidth = Math.max( line1Width, line3Width );
+			const svgWidth = Math.max( MIN_SVG_WIDTH, leftPadding + maxTextWidth + rightPadding );
 			const svgHeight = 100;
 			
 			// 构建游戏名称行（仅当存在时显示）
@@ -464,6 +483,52 @@ class SteamPollingService {
 		}
 	}
 	
+	/**
+	 * 判断字符是否为全角字符
+	 * @param char 单个字符
+	 * @returns 是否为全角字符
+	 */
+	private isFullWidthChar( char: string ): boolean {
+		const code = char.codePointAt( 0 ) || 0;
+
+		return (
+			// CJK 统一表意文字及扩展区
+			( code >= 0x4E00 && code <= 0x9FFF ) ||
+			( code >= 0x3400 && code <= 0x4DBF ) ||
+			( code >= 0x20000 && code <= 0x2A6DF ) ||
+			( code >= 0x2A700 && code <= 0x2B73F ) ||
+			( code >= 0x2B740 && code <= 0x2B81F ) ||
+			( code >= 0x2B820 && code <= 0x2CEAF ) ||
+			// 日文假名
+			( code >= 0x3040 && code <= 0x309F ) ||
+			( code >= 0x30A0 && code <= 0x30FF ) ||
+			// 韩文音节
+			( code >= 0xAC00 && code <= 0xD7AF ) ||
+			// 全角 ASCII 及标点
+			( code >= 0xFF00 && code <= 0xFFEF ) ||
+			// 其他常见全角标点
+			( code >= 0x3000 && code <= 0x303F )
+		);
+	}
+
+	/**
+	 * 计算字符串的预计显示宽度
+	 * @param text 输入字符串
+	 * @param fontSize 字体字号（单位：px）
+	 * @returns 预计总宽度
+	 */
+	private calculateTextWidth( text: string, fontSize: number ): number {
+		if ( !text || fontSize <= 0 ) return 0;
+
+		let totalWidth = 0;
+		for ( const char of text ) {
+			const widthFactor = this.isFullWidthChar( char ) ? 1 : 0.6;
+			totalWidth += fontSize * widthFactor;
+		}
+
+		return totalWidth;
+	}
+
 	/**
 	 * 转义 XML 特殊字符
 	 */
