@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { noAuthFetch } from '../utils/api'
 import { showToast } from '../hooks/useToast'
 import type { PluginConfig } from '../types'
-import { IconTerminal } from '../components/icons'
+import { IconTerminal, IconSteam, IconX, IconPlus } from '../components/icons'
 
 export default function ConfigPage() {
     const [config, setConfig] = useState<PluginConfig | null>(null)
@@ -87,7 +87,50 @@ export default function ConfigPage() {
                         type="number"
                         onChange={(v) => updateField('cooldownSeconds', Number(v) || 0)}
                     />
-                    {/* TODO: 在这里添加你的配置项 */}
+                </div>
+            </div>
+
+            {/* Steam 配置 */}
+            <div className="card p-5 hover-lift">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-5">
+                    <IconSteam size={16} className="text-gray-400" />
+                    Steam 配置
+                </h3>
+                <div className="space-y-5">
+                    <InputRow
+                        label="Steam API Key"
+                        desc="用于访问 Steam Web API，获取方式: steamcommunity.com/dev/apikey"
+                        value={config.steamApiKey || ''}
+                        type="password"
+                        onChange={(v) => updateField('steamApiKey', v)}
+                    />
+                    <InputRow
+                        label="轮询间隔 (秒)"
+                        desc="Steam 状态轮询间隔，最小 1 秒"
+                        value={String(config.pollingIntervalSeconds || 60)}
+                        type="number"
+                        onChange={(v) => updateField('pollingIntervalSeconds', Math.max(1, Number(v) || 60))}
+                    />
+                    <ArrayInputRow
+                        label="管理员列表"
+                        desc="有权限使用管理命令的 QQ 号列表"
+                        value={config.adminUsers || []}
+                        onChange={(v) => updateField('adminUsers', v)}
+                        placeholder="输入 QQ 号后按回车添加"
+                    />
+                    <MultiSelectRow
+                        label="推送状态类型"
+                        desc="选择需要推送通知的状态变化类型"
+                        value={config.notifyStatusTypes || []}
+                        onChange={(v) => updateField('notifyStatusTypes', v)}
+                        options={[
+                            { value: 'online', label: '上线' },
+                            { value: 'offline', label: '下线' },
+                            { value: 'ingame', label: '进入游戏' },
+                            { value: 'outgame', label: '退出游戏' },
+                            { value: 'quitGame', label: '结束游戏并下线' },
+                        ]}
+                    />
                 </div>
             </div>
 
@@ -142,6 +185,98 @@ function InputRow({ label, desc, value, type = 'text', onChange }: {
                 onBlur={handleBlur}
                 onKeyDown={(e) => e.key === 'Enter' && handleBlur()}
             />
+        </div>
+    )
+}
+
+function ArrayInputRow({ label, desc, value, onChange, placeholder }: {
+    label: string; desc: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string
+}) {
+    const [inputValue, setInputValue] = useState('')
+
+    const handleAdd = () => {
+        if (inputValue.trim() && !value.includes(inputValue.trim())) {
+            onChange([...value, inputValue.trim()])
+            setInputValue('')
+        }
+    }
+
+    const handleRemove = (item: string) => {
+        onChange(value.filter(v => v !== item))
+    }
+
+    return (
+        <div>
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">{label}</div>
+            <div className="text-xs text-gray-400 mb-2">{desc}</div>
+            <div className="flex gap-2 mb-2">
+                <input
+                    className="input-field flex-1"
+                    type="text"
+                    value={inputValue}
+                    placeholder={placeholder}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
+                />
+                <button
+                    className="btn btn-primary px-3"
+                    onClick={handleAdd}
+                    disabled={!inputValue.trim()}
+                >
+                    <IconPlus size={16} />
+                </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {value.map((item) => (
+                    <span
+                        key={item}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                    >
+                        {item}
+                        <button
+                            className="hover:text-red-500 transition-colors"
+                            onClick={() => handleRemove(item)}
+                        >
+                            <IconX size={12} />
+                        </button>
+                    </span>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+function MultiSelectRow({ label, desc, value, onChange, options }: {
+    label: string; desc: string; value: string[]; onChange: (v: string[]) => void;
+    options: { value: string; label: string }[]
+}) {
+    const toggleOption = (optionValue: string) => {
+        if (value.includes(optionValue)) {
+            onChange(value.filter(v => v !== optionValue))
+        } else {
+            onChange([...value, optionValue])
+        }
+    }
+
+    return (
+        <div>
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">{label}</div>
+            <div className="text-xs text-gray-400 mb-2">{desc}</div>
+            <div className="flex flex-wrap gap-2">
+                {options.map((option) => (
+                    <button
+                        key={option.value}
+                        className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                            value.includes(option.value)
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                        onClick={() => toggleOption(option.value)}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </div>
         </div>
     )
 }
