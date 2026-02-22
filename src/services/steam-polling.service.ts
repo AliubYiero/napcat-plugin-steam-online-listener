@@ -10,7 +10,6 @@ import {
 	type StatusChanges,
 	StatusChange,
 } from './steam-cache.service';
-import { findSteamBindItemsByFrom } from '../handlers/steam-utils';
 import {
 	sendGroupMessage,
 	sendPrivateMessage,
@@ -29,8 +28,11 @@ class SteamPollingService {
 	 * 获取当前轮询间隔（毫秒）
 	 */
 	private getPollingInterval(): number {
-		// 确保轮询间隔至少为1秒，避免过于频繁的请求
-		const intervalSeconds = Math.max( 1, pluginState.config.pollingIntervalSeconds || 60 );
+		// 限制轮询间隔范围：最小1秒，最大1小时（3600秒）
+		const intervalSeconds = Math.min(
+			3600, // 最大1小时
+			Math.max( 1, pluginState.config.pollingIntervalSeconds || 60 )
+		);
 		return intervalSeconds * 1000;
 	}
 	
@@ -43,16 +45,20 @@ class SteamPollingService {
 			return;
 		}
 		
-		// 检查是否配置了 Steam API Key
+		// 前置验证，避免状态混乱
 		if ( !pluginState.config.steamApiKey ) {
 			pluginState.logger.warn( '未配置 Steam API Key，无法启动 Steam 轮询服务' );
 			return;
 		}
 		
+		// 先标记为正在启动状态，防止重复启动
+		this.isPollingActive = true;
+		
 		// 验证 API Key 是否有效
-		steamService.validateApiKey().then(isValid => {
-			if (!isValid) {
-				pluginState.logger.warn('Steam API Key 无效，无法启动 Steam 轮询服务');
+		steamService.validateApiKey().then( isValid => {
+			if ( !isValid ) {
+				this.isPollingActive = false;
+				pluginState.logger.warn( 'Steam API Key 无效，无法启动 Steam 轮询服务' );
 				return;
 			}
 			
@@ -65,11 +71,11 @@ class SteamPollingService {
 			// 将定时器注册到 pluginState 以便在插件清理时自动清理
 			pluginState.timers.set( 'steam-polling', this.pollingTimer );
 			
-			this.isPollingActive = true;
 			pluginState.logger.info( `Steam 轮询服务已启动，每 ${ interval / 1000 } 秒检查一次状态变化` );
-		}).catch(error => {
-			pluginState.logger.error('验证 Steam API Key 时出错:', error);
-		});
+		} ).catch( error => {
+			this.isPollingActive = false;
+			pluginState.logger.error( '验证 Steam API Key 时出错:', error );
+		} );
 	}
 	
 	/**
@@ -233,6 +239,21 @@ class SteamPollingService {
 			case 'outgame':
 				message += ` 结束了游戏 ${ change.oldStatus?.gameextrainfo || '' }`;
 				break;
+			case 'inAfk':
+				message += ' 开始挂机';
+				if ( change.newStatus.gameextrainfo ) {
+					message += ` - ${ change.newStatus.gameextrainfo }`;
+				}
+				break;
+			case 'outAfk':
+				message += ' 结束挂机';
+				if ( change.newStatus.gameextrainfo ) {
+					message += ` - ${ change.newStatus.gameextrainfo }`;
+				}
+				break;
+			case 'quitGame':
+				message += ` 结束游玩并下线 ${ change.oldStatus?.gameextrainfo || '' }`;
+				break;
 			default:
 				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
@@ -255,34 +276,39 @@ class SteamPollingService {
 	): Promise<void> {
 		try {
 			// 构建SVG内容
-			const gameStatus = this.getStatusText( change );
-			// 计算文本宽度 - 估算字符宽度
-			const displayName = change.newStatus.personaname + (fromInfo.nickname ? ` (${ fromInfo.nickname })` : '');
-			const textWidth = Math.max(
-				this.estimateTextWidth(displayName, 20), // 第一行文本宽度（昵称+自定义昵称）
-				this.estimateTextWidth(gameStatus, 16)   // 第二行文本宽度（游戏状态）
-			);
-			// 宽度 = 头像位置(12) + 头像宽度(64) + 右边距(12) + 文本宽度
-			const calculatedWidth = Math.max(200, 12 + 64 + 12 + textWidth); // 最小宽度为200
+			const statusText = this.getStatusText( change );
+			const gameName = change.newStatus.gameextrainfo || '';
+			const hasGameName = !!gameName;
 			
-			const svgContent = `<svg width="${calculatedWidth}" height="88" viewBox="0 0 ${calculatedWidth} 88"
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink">
-	<rect width="${calculatedWidth}" height="88" fill="#202227"/>
-	<image x="12" y="12" width="64" height="64"
-	       href="${ bindItem.face || change.newStatus.avatarmedium || 'https://steamuserimages-a.akamaihd.net/ugc/852378279109811452/8BCE99B088F7C7042EB8E8B292E8E2C971341432/' }"
-	       preserveAspectRatio="xMidYMid meet"/>
-	<text x="84" y="36" font-family="sans-serif" font-size="20">
-		<tspan fill="#cee8b1">${ change.newStatus.personaname }</tspan>
-		${ fromInfo.nickname ? `<tspan dx="8" fill="#5e5e5e">(${ fromInfo.nickname })</tspan>` : '' }
-	</text>
-	<text x="84" y="64" font-family="sans-serif" font-size="16" fill="#91c257">
-		${ gameStatus }
-	</text>
+			// 固定宽度, 高度
+			const svgWidth = 400;
+			const svgHeight = 100;
+			
+			// 构建游戏名称行（仅当存在时显示）
+			const gameNameLine = hasGameName
+				? `<text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ this.escapeXml( gameName ) }</text>`
+				: '';
+			
+			const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ svgWidth } ${ svgHeight }">
+  <rect width="${ svgWidth }" height="${ svgHeight }" fill="#202227"/>
+  <image href="${ bindItem.face || change.newStatus.avatarmedium }"
+         x="10" y="10" width="80" height="80"
+         preserveAspectRatio="xMidYMid slice" />
+  <rect x="90" y="10" width="4" height="80" fill="#4CAF50"/>
+  <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
+    <text x="115" y="30" font-size="18" font-weight="bold">
+      <tspan fill="#cee8b1">${ this.escapeXml( change.newStatus.personaname ) }</tspan>
+      ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ this.escapeXml( fromInfo.nickname ) })</tspan>` : '' }
+    </text>
+    <text x="115" y="58" fill="#898a8b" font-size="16">
+      ${ this.escapeXml( statusText ) }
+    </text>
+    ${ gameNameLine }
+  </g>
 </svg>`;
 			
-			// 使用 Puppeteer 将 SVG 渲染为 PNG 并转换为 base64
-			const svgBase64 = await this.renderToBase64WithPuppeteer( svgContent, calculatedWidth );
+			// 使用 svg-convert 将 SVG 渲染为 PNG 并转换为 base64
+			const svgBase64 = await this.renderSvgToBase64( svgContent );
 			
 			// 发送文本消息和PNG图片
 			if ( svgBase64 ) {
@@ -329,74 +355,43 @@ class SteamPollingService {
 	}
 	
 	/**
-	 * 估算文本宽度 (像素)
-	 * @param text 文本内容
-	 * @param fontSize 字体大小
-	 * @returns 估算的文本宽度
+	 * 使用 svg-convert 渲染 SVG 为 base64 图片
 	 */
-	private estimateTextWidth(text: string, fontSize: number): number {
-		// 中文字符宽度约为 fontSize * 0.8，英文字符约为 fontSize * 0.6
-		let width = fontSize * text.length;
-		return Math.ceil(width);
-	}
-	
-	/**
-	 * 使用 Puppeteer 渲染 SVG 为 base64 图片
-	 */
-	private async renderToBase64WithPuppeteer( svg: string, calculatedWidth: number ): Promise<string | null> {
+	private async renderSvgToBase64( svg: string ): Promise<string | null> {
 		try {
 			const port = 6099;
 			const host = `http://127.0.0.1:${ port }`;
-			const url = `${ host }/plugin/napcat-plugin-puppeteer/api/render`;
+			const url = `${ host }/plugin/napcat-plugin-svg-render/api/svg/render`;
 			
-			pluginState.logger.debug( `调用 puppeteer 渲染，SVG 长度: ${ svg.length }` );
-			
-			// 将 SVG 包装在 HTML 中以便渲染
-			const html = `<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<style>
-		body { margin: 0; padding: 0; background: #202227; }
-	</style>
-</head>
-<body>
-	${ svg }
-</body>
-</html>`;
+			pluginState.logger.debug( `调用 svg-convert 渲染，SVG 长度: ${ svg.length }` );
 			
 			const res = await fetch( url, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify( {
-					html,
-					file_type: 'htmlString',
-					selector: 'body',
-					type: 'png',
-					encoding: 'base64',
-					setViewport: {
-						width: calculatedWidth,
-						height: 100,
-						deviceScaleFactor: 1,
-					},
+					svg,
+					saveWebImage: true, // 保存网络图片到缓存，提高下次渲染速度
 				} ),
 				signal: AbortSignal.timeout( 30000 ),
 			} );
 			
 			const data = await res.json() as {
 				code: number;
-				data?: string;
+				data?: { imageBase64: string; format: string };
 				message?: string;
 			};
-			if ( data.code === 0 && data.data ) {
-				pluginState.logger.debug( 'puppeteer 渲染成功' );
-				return data.data;
+			
+			if ( data.code === 0 && data.data?.imageBase64 ) {
+				pluginState.logger.debug( 'svg-convert 渲染成功' );
+				// 去除 data:image/png;base64, 前缀，只返回 base64 数据
+				const base64Data = data.data.imageBase64.replace( /^data:image\/png;base64,/, '' );
+				return base64Data;
 			}
-			pluginState.logger.warn( `puppeteer 渲染失败: ${ data.message || '未知错误' }` );
+			pluginState.logger.warn( `svg-convert 渲染失败: ${ data.message || '未知错误' }` );
 			return null;
 		}
 		catch ( e ) {
-			pluginState.logger.error( `puppeteer 渲染请求失败: ${ e }` );
+			pluginState.logger.error( `svg-convert 渲染请求失败: ${ e }` );
 			return null;
 		}
 	}
@@ -408,25 +403,35 @@ class SteamPollingService {
 	private getStatusText( change: StatusChange ): string {
 		switch ( change.changeType ) {
 			case 'online':
-				return '上线了';
+				return '上线';
 			case 'offline':
-				return '离线了';
+				return '下线';
 			case 'ingame':
-				if ( change.newStatus.gameextrainfo ) {
-					return `${ change.newStatus.gameextrainfo }`;
-				}
-				else {
-					return '正在游戏中';
-				}
+				return '正在玩';
 			case 'outgame':
-				return `结束游戏 ${ change.oldStatus?.gameextrainfo || '' }`;
+				return '结束游玩';
+			case 'inAfk':
+				return '正在挂机';
+			case 'outAfk':
+				return '结束挂机';
+			case 'quitGame':
+				return '结束游玩并下线';
 			default:
-				const baseStatus = steamService.formatPlayerState( change.newStatus.personastate );
-				if ( change.newStatus.gameextrainfo ) {
-					return `${ baseStatus } - ${ change.newStatus.gameextrainfo }`;
-				}
-				return baseStatus;
+				return steamService.formatPlayerState( change.newStatus.personastate );
 		}
+	}
+	
+	/**
+	 * 转义 XML 特殊字符
+	 */
+	private escapeXml( text: string ): string {
+		if ( !text ) return '';
+		return text
+			.replace( /&/g, '&amp;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' )
+			.replace( /"/g, '&quot;' )
+			.replace( /'/g, '&apos;' );
 	}
 	
 	/**
