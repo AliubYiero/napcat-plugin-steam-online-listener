@@ -95,6 +95,7 @@ pnpm run dev
 - `pollingIntervalSeconds`: Steam状态轮询间隔（秒）
 - `steamApiKey`: Steam Web API 密钥
 - `adminUsers`: 插件管理员用户列表
+- `notifyStatusTypes`: 要推送的状态类型列表（可选：online, offline, ingame, outgame, inAfk, outAfk, quitGame）
 
 ### 群组配置
 - `enabled`: 是否在该群启用插件功能
