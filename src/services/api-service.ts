@@ -23,6 +23,13 @@ import type {
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { pluginState } from '../core/state';
 import { steamService } from './steam.service';
+import {
+    loadSteamBindData,
+    saveSteamBindData,
+    findSteamBindItem,
+    updateSteamBindItem
+} from '../handlers/steam-utils';
+import type { FromInfo } from '../types';
 
 /**
  * 注册 API 路由
@@ -195,6 +202,131 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
         } catch (err) {
             ctx.logger.error('移除管理员用户失败:', err);
             res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
+    // ==================== Steam 绑定管理（无鉴权）====================
+
+    /** 获取 Steam 绑定列表 */
+    router.getNoAuth('/steam-binds', (req, res) => {
+        try {
+            const { fromId, type } = req.query as { fromId?: string; type?: string };
+            let binds = loadSteamBindData();
+
+            // 如果指定了来源，进行筛选
+            if (fromId && type) {
+                binds = binds.filter(item =>
+                    item.from?.some(f => f.id === fromId && f.type === type)
+                );
+            }
+
+            res.json({ code: 0, data: binds });
+        } catch (error) {
+            pluginState.logger.error('获取 Steam 绑定列表失败:', error);
+            res.json({ code: -1, message: '获取失败' });
+        }
+    });
+
+    /** 添加 Steam 绑定 */
+    router.postNoAuth('/steam-bind', async (req, res) => {
+        try {
+            const body = req.body as Record<string, unknown> | undefined;
+            const { steamId, fromId, type, nickname } = body || {};
+
+            if (!steamId || !fromId || !type) {
+                return res.status(400).json({ code: -1, message: '参数不完整' });
+            }
+
+            if (typeof steamId !== 'string' || typeof fromId !== 'string' || 
+                (type !== 'group' && type !== 'private')) {
+                return res.status(400).json({ code: -1, message: '参数类型错误' });
+            }
+
+            // 验证 Steam 用户是否存在
+            const playerSummary = await steamService.getPlayerSummary(String(steamId));
+            if (!playerSummary) {
+                return res.json({ code: -1, message: '无法找到 Steam 用户' });
+            }
+
+            // 创建或更新绑定
+            let bindItem = findSteamBindItem(String(steamId));
+            if (!bindItem) {
+                bindItem = {
+                    steamId: String(steamId),
+                    personName: playerSummary.personaname,
+                    face: playerSummary.avatarmedium,
+                    from: []
+                };
+            }
+
+            // 添加来源信息
+            const newFromInfo: FromInfo = { 
+                id: String(fromId), 
+                type: type as 'private' | 'group', 
+                nickname: nickname ? String(nickname) : undefined 
+            };
+            const existingIndex = bindItem.from?.findIndex(
+                f => f.id === fromId && f.type === type
+            );
+
+            if (existingIndex !== undefined && existingIndex !== -1) {
+                bindItem.from![existingIndex] = newFromInfo;
+            } else {
+                bindItem.from!.push(newFromInfo);
+            }
+
+            updateSteamBindItem(bindItem);
+
+            ctx.logger.info(`Steam 绑定已添加/更新: ${steamId}`);
+            res.json({ code: 0, message: '绑定成功' });
+        } catch (error) {
+            pluginState.logger.error('添加 Steam 绑定失败:', error);
+            res.status(500).json({ code: -1, message: '绑定失败' });
+        }
+    });
+
+    /** 删除 Steam 绑定（特定来源） */
+    router.deleteNoAuth('/steam-bind/:steamId/from/:fromId', (req, res) => {
+        try {
+            const steamId = req.params?.steamId;
+            const fromId = req.params?.fromId;
+            const { type } = req.query as { type?: string };
+
+            if (!steamId || !fromId || !type) {
+                return res.status(400).json({ code: -1, message: '参数不完整' });
+            }
+
+            if (type !== 'group' && type !== 'private') {
+                return res.status(400).json({ code: -1, message: 'type 参数错误' });
+            }
+
+            const bindItem = findSteamBindItem(steamId);
+            if (!bindItem) {
+                return res.json({ code: -1, message: '绑定不存在' });
+            }
+
+            // 移除特定来源
+            bindItem.from = bindItem.from?.filter(
+                f => !(f.id === fromId && f.type === type)
+            );
+
+            // 如果没有来源了，删除整个绑定
+            if (!bindItem.from || bindItem.from.length === 0) {
+                const allBinds = loadSteamBindData();
+                const index = allBinds.findIndex(b => b.steamId === steamId);
+                if (index !== -1) {
+                    allBinds.splice(index, 1);
+                    saveSteamBindData(allBinds);
+                }
+            } else {
+                updateSteamBindItem(bindItem);
+            }
+
+            ctx.logger.info(`Steam 绑定已删除: ${steamId} from ${type}:${fromId}`);
+            res.json({ code: 0, message: '删除成功' });
+        } catch (error) {
+            pluginState.logger.error('删除 Steam 绑定失败:', error);
+            res.status(500).json({ code: -1, message: '删除失败' });
         }
     });
 
