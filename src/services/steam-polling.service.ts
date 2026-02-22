@@ -160,7 +160,24 @@ class SteamPollingService {
 	 * 处理检测到的状态变化
 	 */
 	private async handleStatusChanges( changes: StatusChanges, allBindItems: SteamBindItem[] ): Promise<void> {
-		for ( const change of changes ) {
+		// 获取要推送的状态类型配置
+		const notifyStatusTypes = pluginState.config.notifyStatusTypes || [];
+		
+		// 过滤掉不需要推送的状态变化
+		const filteredChanges = changes.filter( change =>
+			notifyStatusTypes.includes( change.changeType )
+		);
+		
+		if ( filteredChanges.length === 0 ) {
+			pluginState.logger.debug( '所有状态变化都被过滤，跳过推送' );
+			return;
+		}
+		
+		if ( filteredChanges.length < changes.length ) {
+			pluginState.logger.debug( `过滤后剩余 ${ filteredChanges.length }/${ changes.length } 个状态变化` );
+		}
+		
+		for ( const change of filteredChanges ) {
 			try {
 				// 获取与该 Steam ID 相关的所有绑定项
 				const relatedBindItems = allBindItems.filter( item => item.steamId === change.steamId );
