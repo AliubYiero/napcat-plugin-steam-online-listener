@@ -15,9 +15,9 @@ export const DEFAULT_CONFIG: PluginConfig = {
 	debug: false,
 	commandPrefix: '#',
 	cooldownSeconds: 1,
-	pollingIntervalSeconds: 60,
 	groupConfigs: {},
 	// TODO: 在这里添加你的默认配置值
+	pollingIntervalSeconds: 60,
 	steamApiKey: '',
 	adminUsers: [], // 默认管理员用户
 	notifyStatusTypes: ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'],

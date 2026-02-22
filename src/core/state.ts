@@ -36,6 +36,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.commandPrefix === 'string') out.commandPrefix = raw.commandPrefix;
     if (typeof raw.cooldownSeconds === 'number') out.cooldownSeconds = raw.cooldownSeconds;
     if (typeof raw.steamApiKey === 'string') out.steamApiKey = raw.steamApiKey;
+    if (typeof raw.pollingIntervalSeconds === 'number') out.pollingIntervalSeconds = raw.pollingIntervalSeconds;
  
     // 处理 adminUsers - 从字符串或数组转换为数组
     if (typeof raw.adminUsers === 'string') {
