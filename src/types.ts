@@ -28,14 +28,15 @@ export interface PluginConfig {
     groupConfigs: Record<string, GroupConfig>;
     /** 插件管理员用户列表 */
     adminUsers?: string[];
-    // TODO: 在这里添加你的插件配置项
-	steamApiKey: string;
-}
-
-/**
- * 群配置
- */
-export interface GroupConfig {
+    	// TODO: 在这里添加你的插件配置项
+    	steamApiKey: string;
+    	/** 要推送的状态类型列表 */
+    	notifyStatusTypes: string[];
+    }
+    
+    /**
+     * 群配置
+     */export interface GroupConfig {
     /** 是否启用此群的功能 */
     enabled?: boolean;
     // TODO: 在这里添加群级别的配置项
