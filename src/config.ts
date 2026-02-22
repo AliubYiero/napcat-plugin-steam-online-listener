@@ -13,7 +13,7 @@ import type { PluginConfig } from './types';
 export const DEFAULT_CONFIG: PluginConfig = {
 	enabled: true,
 	debug: false,
-	commandPrefix: '#',
+	commandPrefix: '#steam',
 	cooldownSeconds: 1,
 	groupConfigs: {},
 	// TODO: 在这里添加你的默认配置值
