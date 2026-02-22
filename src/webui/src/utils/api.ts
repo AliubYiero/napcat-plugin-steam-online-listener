@@ -64,3 +64,33 @@ export async function authFetch<T = unknown>(path: string, options: RequestInit 
     }
     return res.json()
 }
+
+// ==================== Steam 绑定管理 API ====================
+
+import type { SteamBindItem } from '../types'
+
+export async function getSteamBinds(fromId?: string, type?: 'group' | 'private') {
+    const query = new URLSearchParams()
+    if (fromId) query.append('fromId', fromId)
+    if (type) query.append('type', type)
+    const queryStr = query.toString()
+    return noAuthFetch<SteamBindItem[]>(`/steam-binds${queryStr ? '?' + queryStr : ''}`)
+}
+
+export async function addSteamBind(data: {
+    steamId: string
+    fromId: string
+    type: 'private' | 'group'
+    nickname?: string
+}) {
+    return noAuthFetch('/steam-bind', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
+}
+
+export async function deleteSteamBind(steamId: string, fromId: string, type: 'private' | 'group') {
+    return noAuthFetch(`/steam-bind/${steamId}/from/${fromId}?type=${type}`, {
+        method: 'DELETE',
+    })
+}
