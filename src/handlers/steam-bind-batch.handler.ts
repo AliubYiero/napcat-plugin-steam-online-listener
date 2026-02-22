@@ -12,6 +12,14 @@ import { findSteamBindItem, updateSteamBindItem } from './steam-utils';
 import type { SteamBindItem } from '../types';
 import { pluginState } from '../core/state';
 import { steamService } from '../services/steam.service';
+import { steamPollingService } from '../services/steam-polling.service';
+
+/**
+ * 验证 Steam ID 是否为纯数字格式
+ */
+function isValidSteamId64(steamId: string): boolean {
+	return /^\d+$/.test(steamId);
+}
 
 /**
  * 解析批量绑定参数
@@ -85,6 +93,22 @@ export async function handleSteamBindBatch(
 		try {
 			let steamId = pair.steamId;
 			const nickname = pair.nickname;
+
+			// 验证 Steam ID 格式：如果不是纯数字，尝试解析为自定义 ID
+			if (!isValidSteamId64(steamId)) {
+				pluginState.logger.debug(`批量绑定: Steam ID 不是纯数字格式，尝试解析为自定义 ID: ${steamId}`);
+				const resolvedId = await steamService.getSteamID64(steamId);
+				if (!resolvedId) {
+					results.push({
+						steamId: pair.steamId,
+						nickname,
+						success: false,
+						message: 'Steam ID 格式无效（应为纯数字）'
+					});
+					continue;
+				}
+				steamId = resolvedId;
+			}
 
 			// 验证用户是否存在
 			let playerSummary = await steamService.getPlayerSummary(steamId);
@@ -204,6 +228,16 @@ export async function handleSteamBindBatch(
 	}
 
 	await sendReply(ctx, event, resultMessage.trim());
+
+	// 如果有成功绑定的，触发一次状态查询
+	if (successCount > 0) {
+		try {
+			await steamPollingService.pollSteamStatuses();
+			pluginState.logger.debug(`批量绑定完成后手动触发状态查询成功，共 ${successCount} 个绑定`);
+		} catch (error) {
+			pluginState.logger.warn(`批量绑定完成后状态查询失败:`, error);
+		}
+	}
 
 	if (messageType === 'group' && groupId) {
 		setCooldown(groupId, 'steam-bind-batch');
