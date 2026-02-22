@@ -22,7 +22,7 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                     <IconPlugin size={18} />
                 </div>
                 <div>
-                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Plugin Template</h1>
+                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Steam 监听</h1>
                     <p className="text-[10px] text-gray-400 font-medium tracking-wider">NAPCAT PLUGIN</p>
                 </div>
             </div>
