@@ -18,8 +18,7 @@ import { pluginState } from '../core/state';
 import { handleHelp } from './help.handler';
 import { handleSteamSearch } from './steam-search.handler';
 import { handleSteamBind } from './steam-bind.handler';
-import { handleSteamBindNickname } from './steam-bind-nickname.handler';
-import { handleSteamBindQQ } from './steam-bind-qq.handler';
+import { handleSteamBindBatch } from './steam-bind-batch.handler';
 import { handleSteamList } from './steam-list.handler';
 import { handleSteamRemove } from './steam-remove.handler';
 import { handleSteamReset } from './steam-reset.handler';
@@ -54,31 +53,18 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         // 解析命令参数
         const args = rawMessage.slice(prefix.length).trim().split(/\s+/);
         const subCommand = args[0]?.toLowerCase() || '';
-        // TODO: 在这里实现你的命令处理逻辑
         switch (subCommand) {
-            case 'help':
-                // await handleHelp(ctx, event, args);
-                break;
             case 'steam-help':
                 await handleHelp(ctx, event, args);
                 break;
-            // case 'ping':
-            //     await handlePing(ctx, event, args);
-            //     break;
-            // case 'status':
-            //     await handleStatus(ctx, event, args);
-            //     break;
             case 'steam-search':
                 await handleSteamSearch(ctx, event, args);
                 break;
             case 'steam-bind':
                 await handleSteamBind(ctx, event, args);
                 break;
-            case 'steam-bind-nickname':
-                await handleSteamBindNickname(ctx, event, args);
-                break;
-            case 'steam-bind-qq':
-                await handleSteamBindQQ(ctx, event, args);
+            case 'steam-bind-batch':
+                await handleSteamBindBatch(ctx, event, args);
                 break;
             case 'steam-list':
                 await handleSteamList(ctx, event, args);
@@ -99,8 +85,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 await handleGroup(ctx, event, args);
                 break;
             default:
-                // TODO: 在这里处理你的主要命令逻辑
-	            // await handleHelp(ctx, event, args);
+                // 未知命令，不做处理
                 break;
         }
     } catch (error) {
