@@ -20,6 +20,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
 	// TODO: 在这里添加你的默认配置值
 	steamApiKey: '',
 	adminUsers: [], // 默认管理员用户
+	notifyStatusTypes: ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'],
 };
 
 /**
@@ -66,6 +67,22 @@ export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchem
 			'插件管理员用户',
 			'',
 			'插件管理员QQ号列表，多个QQ号用英文逗号分隔',
+		),
+		// 状态推送设置
+		ctx.NapCatConfig.multiSelect(
+			'notifyStatusTypes',
+			'状态推送设置',
+			[
+				{ label: '上线', value: 'online' },
+				{ label: '离线', value: 'offline' },
+				{ label: '开始游戏', value: 'ingame' },
+				{ label: '结束游戏', value: 'outgame' },
+				{ label: '开始挂机', value: 'inAfk' },
+				{ label: '结束挂机', value: 'outAfk' },
+				{ label: '游戏下线', value: 'quitGame' },
+			],
+			['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'],
+			'选择要推送的 Steam 状态变化类型，默认全部推送'
 		),
 	);
 }
