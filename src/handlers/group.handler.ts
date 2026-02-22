@@ -30,10 +30,10 @@ export async function handleGroup(ctx: NapCatPluginContext, event: OB11Message, 
             // 显示帮助信息
             const helpText = [
                 '群组管理指令列表：',
-                '#group add <群号> - 将群聊添加到白名单',
-                '#group remove <群号> - 从白名单移除群聊',
-                '#group list - 查看已管理的群组列表',
-                '#group help - 显示此帮助信息'
+                '#steam group add <群号> - 将群聊添加到白名单',
+                '#steam group remove <群号> - 从白名单移除群聊',
+                '#steam group list - 查看已管理的群组列表',
+                '#steam group help - 显示此帮助信息'
             ].join('\n');
             await sendReply(ctx, event, helpText);
             return;
@@ -55,10 +55,10 @@ export async function handleGroup(ctx: NapCatPluginContext, event: OB11Message, 
             case 'help':
                 const helpText = [
                     '群组管理指令列表：',
-                    '#group add <群号> - 将群聊添加到白名单',
-                    '#group remove <群号> - 从白名单移除群聊',
-                    '#group list - 查看已管理的群组列表',
-                    '#group help - 显示此帮助信息'
+                    '#steam group add <群号> - 将群聊添加到白名单',
+                    '#steam group remove <群号> - 从白名单移除群聊',
+                    '#steam group list - 查看已管理的群组列表',
+                    '#steam group help - 显示此帮助信息'
                 ].join('\n');
                 await sendReply(ctx, event, helpText);
                 break;
