@@ -64,7 +64,7 @@ export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchem
 		ctx.NapCatConfig.text(
 			'adminUsers',
 			'插件管理员用户',
-			'958341409',
+			'',
 			'插件管理员QQ号列表，多个QQ号用英文逗号分隔',
 		),
 	);
