@@ -13,6 +13,8 @@ dist/
 *.swp
 *.swo
 AGENTS.md
+/docs/plans
+/.iflow
 
 # OS
 .DS_Store

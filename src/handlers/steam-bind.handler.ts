@@ -30,19 +30,13 @@ export async function handleSteamBind( ctx: NapCatPluginContext, event: OB11Mess
 	}
 	
 	if ( args.length < 2 ) {
-		await sendReply( ctx, event, '用法: #steam-bind <steam-id> [自定义用户昵称] [绑定qq号]' );
+		await sendReply( ctx, event, '用法: #steam-bind <steam-id> [自定义用户昵称]' );
 		return;
 	}
 	
 	try {
 		let steamId = args[ 1 ];
 		const nickname = args.length > 2 ? args[ 2 ] : undefined;
-		const userQQ = args.length > 3 ? parseInt( args[ 3 ] ) : undefined;
-		
-		if ( userQQ !== undefined && isNaN( userQQ ) ) {
-			await sendReply( ctx, event, 'QQ 号必须是数字' );
-			return;
-		}
 		
 		// 验证用户是否存在
 		let playerSummary = await steamService.getPlayerSummary( steamId );
@@ -109,14 +103,10 @@ export async function handleSteamBind( ctx: NapCatPluginContext, event: OB11Mess
 			}
 		}
 		
-		if ( userQQ !== undefined ) {
-			bindItem.userQQ = userQQ;
-		}
-		
 		// 更新绑定数据
 		updateSteamBindItem( bindItem );
 		
-		await sendReply( ctx, event, `成功绑定 Steam 用户: ${ playerSummary.personaname } (ID: ${ steamId })${ nickname ? `，昵称: ${ nickname }` : '' }${ userQQ ? `，QQ: ${ userQQ }` : '' }` );
+		await sendReply( ctx, event, `成功绑定 Steam 用户: ${ playerSummary.personaname } (ID: ${ steamId })${ nickname ? `，昵称: ${ nickname }` : '' }` );
 		pluginState.incrementProcessed();
 	}
 	catch ( error: any ) {

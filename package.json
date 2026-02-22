@@ -21,7 +21,6 @@
     "homepage": ""
   },
   "dependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "napcat-types": "0.0.16"
   },
   "devDependencies": {

@@ -125,14 +125,6 @@ export function updateSteamBindItem(bindItem: SteamBindItem): void {
 }
 
 /**
- * 根据 QQ 号查找绑定项
- */
-export function findSteamBindItemByQQ(userQQ: number): SteamBindItem | undefined {
-    const data = loadSteamBindData();
-    return data.find(item => item.userQQ === userQQ);
-}
-
-/**
  * 根据昵称查找绑定项（在所有来源中查找）
  */
 export function findSteamBindItemByNickname(nickname: string): SteamBindItem | undefined {

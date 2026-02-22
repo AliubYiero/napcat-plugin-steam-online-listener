@@ -20,6 +20,8 @@ export interface SteamStatusCacheItem {
     gameextrainfo?: string;
     /** 最后更新时间戳 */
     lastUpdateTime: number;
+    /** 游戏开始时间戳（可选，仅在玩游戏时记录）*/
+    gameStartTime?: number;
 }
 
 /** Steam 状态缓存类型 */
@@ -34,7 +36,7 @@ export interface StatusChange {
     /** 新状态 */
     newStatus: SteamPlayerSummary;
     /** 变化类型 */
-    changeType: 'online' | 'offline' | 'ingame' | 'outgame' | 'other';
+    changeType: 'online' | 'offline' | 'ingame' | 'outgame' | 'inAfk' | 'outAfk' | 'quitGame' | 'other';
 }
 
 /** 状态变化检测结果数组 */
@@ -64,12 +66,15 @@ class SteamCacheService {
      */
     updateCacheItem(steamId: string, playerSummary: SteamPlayerSummary): void {
         const cache = this.loadCache();
+        const now = Date.now();
+
         cache[steamId] = {
             steamId,
             personaname: playerSummary.personaname,
             personastate: playerSummary.personastate,
             gameextrainfo: playerSummary.gameextrainfo,
-            lastUpdateTime: Date.now(),
+            lastUpdateTime: now,
+            gameStartTime: playerSummary.gameextrainfo ? now : undefined,
         };
         this.saveCache(cache);
     }
@@ -88,6 +93,7 @@ class SteamCacheService {
                 personastate: player.personastate,
                 gameextrainfo: player.gameextrainfo,
                 lastUpdateTime: now,
+                gameStartTime: player.gameextrainfo ? now : undefined,
             };
         }
 
@@ -132,6 +138,18 @@ class SteamCacheService {
         const newIsOnline = newStatus.personastate > 0;
         const oldWasInGame = !!oldStatus.gameextrainfo;
         const newIsInGame = !!newStatus.gameextrainfo;
+        const oldIsAfk = oldWasInGame && (oldStatus.personastate === 3 || oldStatus.personastate === 4);
+        const newIsAfk = newIsInGame && (newStatus.personastate === 3 || newStatus.personastate === 4);
+
+        // 检查从游戏中直接离线的情况（quitGame）
+        if (oldWasInGame && !newIsOnline) {
+            return {
+                steamId: newStatus.steamid,
+                oldStatus,
+                newStatus,
+                changeType: 'quitGame',
+            };
+        }
 
         // 检查在线状态变化
         if (oldStatus.personastate !== newStatus.personastate) {
@@ -144,8 +162,8 @@ class SteamCacheService {
                     changeType: 'online',
                 };
             }
-            // 从离线直接变为游戏中
-            else if (!oldWasOnline && newIsOnline && newIsInGame) {
+            // 从离线直接变为游戏中（状态1）
+            else if (!oldWasOnline && newIsOnline && newIsInGame && newStatus.personastate === 1) {
                 return {
                     steamId: newStatus.steamid,
                     oldStatus,
@@ -153,8 +171,17 @@ class SteamCacheService {
                     changeType: 'ingame',
                 };
             }
-            // 从在线变为离线（之前可能在线但不玩游戏，或在玩游戏）
-            else if (oldWasOnline && !newIsOnline) {
+            // 从离线直接变为挂机中（状态3/4）
+            else if (!oldWasOnline && newIsOnline && newIsAfk) {
+                return {
+                    steamId: newStatus.steamid,
+                    oldStatus,
+                    newStatus,
+                    changeType: 'inAfk',
+                };
+            }
+            // 从在线变为离线（之前可能在线但不玩游戏）
+            else if (oldWasOnline && !newIsOnline && !oldWasInGame) {
                 return {
                     steamId: newStatus.steamid,
                     oldStatus,
@@ -162,12 +189,30 @@ class SteamCacheService {
                     changeType: 'offline',
                 };
             }
+            // 从游戏中变为挂机中
+            else if (oldWasInGame && !oldIsAfk && newIsAfk) {
+                return {
+                    steamId: newStatus.steamid,
+                    oldStatus,
+                    newStatus,
+                    changeType: 'inAfk',
+                };
+            }
+            // 从挂机中变为正常游戏中
+            else if (oldIsAfk && newIsInGame && !newIsAfk) {
+                return {
+                    steamId: newStatus.steamid,
+                    oldStatus,
+                    newStatus,
+                    changeType: 'outAfk',
+                };
+            }
         }
 
         // 检查游戏状态变化（在线状态下）
         if (oldWasInGame !== newIsInGame) {
-            // 开始玩游戏（可能从离线直接到游戏中，或从在线变为游戏中）
-            if (newIsInGame && !oldWasInGame) {
+            // 开始玩游戏（从在线变为游戏中，状态为1）
+            if (newIsInGame && !oldWasInGame && newStatus.personastate === 1) {
                 return {
                     steamId: newStatus.steamid,
                     oldStatus,
@@ -175,8 +220,40 @@ class SteamCacheService {
                     changeType: 'ingame',
                 };
             }
+            // 开始玩游戏（从在线变为挂机中，状态为3/4）
+            else if (newIsInGame && !oldWasInGame && newIsAfk) {
+                return {
+                    steamId: newStatus.steamid,
+                    oldStatus,
+                    newStatus,
+                    changeType: 'inAfk',
+                };
+            }
             // 结束游戏（变为普通在线状态）
             else if (!newIsInGame && oldWasInGame) {
+                // 计算并输出游玩时间
+                if (oldStatus.gameStartTime) {
+                    const playTimeMs = Date.now() - oldStatus.gameStartTime;
+                    const playTimeMinutes = Math.floor(playTimeMs / 60000);
+                    const playTimeHours = Math.floor(playTimeMinutes / 60);
+                    const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
+
+                    let playTimeStr = '';
+                    if (playTimeHours > 0) {
+                        playTimeStr += `${playTimeHours}小时`;
+                    }
+                    if (playTimeMinutes > 0) {
+                        playTimeStr += `${playTimeMinutes % 60}分钟`;
+                    }
+                    if (playTimeSeconds > 0 || playTimeStr === '') {
+                        playTimeStr += `${playTimeSeconds}秒`;
+                    }
+
+                    pluginState.logger.info(
+                        `玩家 ${newStatus.personaname} (${newStatus.steamid}) 结束了游戏 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`
+                    );
+                }
+
                 return {
                     steamId: newStatus.steamid,
                     oldStatus,
@@ -192,16 +269,6 @@ class SteamCacheService {
                 oldStatus,
                 newStatus,
                 changeType: 'ingame',
-            };
-        }
-
-        // 检查从游戏中直接变为离线的情况
-        if (oldWasInGame && !newIsOnline) {
-            return {
-                steamId: newStatus.steamid,
-                oldStatus,
-                newStatus,
-                changeType: 'offline',
             };
         }
 

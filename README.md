@@ -79,7 +79,8 @@ pnpm run dev
 ### Steam 专用指令
 - `#steam-help` - 显示 Steam 相关帮助信息
 - `#steam-search <Steam昵称或链接>` - 通过Steam昵称或链接查询Steam ID64
-- `#steam-bind <Steam ID> [自定义昵称] [绑定QQ号]` - 绑定 Steam 用户信息
+- `#steam-bind <Steam ID> [自定义昵称]` - 绑定 Steam 用户
+- `#steam-bind-batch <steam-id-1> <nickname-1> <steam-id-2> <nickname-2> ...` - 批量绑定 Steam 用户（参数间可用空格、换行或制表符分隔）
 - `#steam-list` - 显示当前绑定的 Steam 用户列表
 - `#steam-remove <Steam ID>` - 移除指定的 Steam 绑定数据
 - `#steam-reset` - 清空当前群组/用户的 steam 绑定数据

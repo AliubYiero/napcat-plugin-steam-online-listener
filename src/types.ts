@@ -114,7 +114,6 @@ export interface SteamBindItem {
     steamId: string;           // STEAM ID64
     personName?: string;       // Steam 用户的昵称
     face?: string;             // 用户头像链接
-    userQQ?: number;           // 当前 steam 绑定的 QQ 用户
     from?: FromInfo[];         // 来源信息数组，记录多个来源及每个来源的自定义昵称
 }
 
