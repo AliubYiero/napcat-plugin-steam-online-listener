@@ -37,7 +37,24 @@ export const DEFAULT_CONFIG: PluginConfig = {
  *   - combine(...items)  → 组合多个配置项为 Schema
  */
 export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchema {
+	const pluginName = ctx.pluginName;
+	const webuiUrl = `/plugin/${pluginName}/page/dashboard`;
+	
 	return ctx.NapCatConfig.combine(
+		// 跳转到管理页面按钮
+		ctx.NapCatConfig.html( `
+            <div style="margin-bottom: 16px;">
+                <a href="${webuiUrl}" 
+                   target="_blank"
+                   style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #FB7299; color: white; border-radius: 8px; text-decoration: none; font-weight: 500; transition: opacity 0.2s;"
+                   onmouseover="this.style.opacity='0.9'"
+                   onmouseout="this.style.opacity='1'">
+                    <span>📊</span>
+                    <span>打开 WebUI 管理页面</span>
+                </a>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">在独立页面中管理 Steam 绑定和查看状态</p>
+            </div>
+        ` ),
 		// 插件信息头部
 		ctx.NapCatConfig.html( `
             <div style="padding: 16px; background: #FB7299; border-radius: 12px; margin-bottom: 20px; color: white;">
