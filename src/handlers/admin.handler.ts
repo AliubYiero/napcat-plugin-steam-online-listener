@@ -30,10 +30,10 @@ export async function handleAdmin(ctx: NapCatPluginContext, event: OB11Message, 
             // 显示帮助信息
             const helpText = [
                 '管理员指令列表：',
-                '#admin list - 查看管理员列表',
-                '#admin add <QQ号> - 添加管理员',
-                '#admin remove <QQ号> - 移除管理员',
-                '#admin help - 显示此帮助信息'
+                '#steam admin list - 查看管理员列表',
+                '#steam admin add <QQ号> - 添加管理员',
+                '#steam admin remove <QQ号> - 移除管理员',
+                '#steam admin help - 显示此帮助信息'
             ].join('\n');
             await sendReply(ctx, event, helpText);
             return;
@@ -54,10 +54,10 @@ export async function handleAdmin(ctx: NapCatPluginContext, event: OB11Message, 
             case 'help':
                 const helpText = [
                     '管理员指令列表：',
-                    '#admin list - 查看管理员列表',
-                    '#admin add <QQ号> - 添加管理员',
-                    '#admin remove <QQ号> - 移除管理员',
-                    '#admin help - 显示此帮助信息'
+                    '#steam admin list - 查看管理员列表',
+                    '#steam admin add <QQ号> - 添加管理员',
+                    '#steam admin remove <QQ号> - 移除管理员',
+                    '#steam admin help - 显示此帮助信息'
                 ].join('\n');
                 await sendReply(ctx, event, helpText);
                 break;
