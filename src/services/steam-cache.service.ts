@@ -67,6 +67,29 @@ class SteamCacheService {
     updateCacheItem(steamId: string, playerSummary: SteamPlayerSummary): void {
         const cache = this.loadCache();
         const now = Date.now();
+        
+        // 获取旧缓存数据
+        const oldCache = cache[steamId];
+        
+        // 判断是否需要更新 gameStartTime
+        // 1. 如果之前有游戏，现在还是同一个游戏，保持 gameStartTime 不变
+        // 2. 如果之前有游戏，现在换了游戏，更新 gameStartTime
+        // 3. 如果之前没有游戏，现在有游戏，设置 gameStartTime
+        let gameStartTime: number | undefined;
+        
+        if (playerSummary.gameextrainfo) {
+            // 当前正在玩游戏
+            if (oldCache?.gameextrainfo === playerSummary.gameextrainfo) {
+                // 同一游戏，保持原来的 gameStartTime
+                gameStartTime = oldCache.gameStartTime;
+            } else {
+                // 新游戏，设置当前时间为 gameStartTime
+                gameStartTime = now;
+            }
+        } else {
+            // 当前没有玩游戏，不设置 gameStartTime
+            gameStartTime = undefined;
+        }
 
         cache[steamId] = {
             steamId,
@@ -74,7 +97,7 @@ class SteamCacheService {
             personastate: playerSummary.personastate,
             gameextrainfo: playerSummary.gameextrainfo,
             lastUpdateTime: now,
-            gameStartTime: playerSummary.gameextrainfo ? now : undefined,
+            gameStartTime,
         };
         this.saveCache(cache);
     }
@@ -87,13 +110,33 @@ class SteamCacheService {
         const now = Date.now();
 
         for (const player of playerSummaries) {
+            // 获取旧缓存数据
+            const oldCache = cache[player.steamid];
+            
+            // 判断是否需要更新 gameStartTime
+            let gameStartTime: number | undefined;
+            
+            if (player.gameextrainfo) {
+                // 当前正在玩游戏
+                if (oldCache?.gameextrainfo === player.gameextrainfo) {
+                    // 同一游戏，保持原来的 gameStartTime
+                    gameStartTime = oldCache.gameStartTime;
+                } else {
+                    // 新游戏，设置当前时间为 gameStartTime
+                    gameStartTime = now;
+                }
+            } else {
+                // 当前没有玩游戏，不设置 gameStartTime
+                gameStartTime = undefined;
+            }
+            
             cache[player.steamid] = {
                 steamId: player.steamid,
                 personaname: player.personaname,
                 personastate: player.personastate,
                 gameextrainfo: player.gameextrainfo,
                 lastUpdateTime: now,
-                gameStartTime: player.gameextrainfo ? now : undefined,
+                gameStartTime,
             };
         }
 
