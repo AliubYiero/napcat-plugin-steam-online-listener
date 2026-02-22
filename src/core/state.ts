@@ -53,6 +53,22 @@ function sanitizeConfig(raw: unknown): PluginConfig {
         // 如果未定义，使用默认值
         out.adminUsers = DEFAULT_CONFIG.adminUsers || [];
     }
+
+    // 处理 notifyStatusTypes - 状态推送类型列表
+    const validStatusTypes = ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'];
+    if (Array.isArray(raw.notifyStatusTypes)) {
+        // 过滤掉无效的状态类型
+        out.notifyStatusTypes = raw.notifyStatusTypes
+            .filter((type): type is string => typeof type === 'string')
+            .filter(type => validStatusTypes.includes(type));
+        
+        // 如果过滤后为空，使用默认值
+        if (out.notifyStatusTypes.length === 0) {
+            out.notifyStatusTypes = [...DEFAULT_CONFIG.notifyStatusTypes];
+        }
+    } else {
+        out.notifyStatusTypes = [...DEFAULT_CONFIG.notifyStatusTypes];
+    }
  
     // 群配置清洗
     if (isObject(raw.groupConfigs)) {
