@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getSteamBinds, addSteamBind, deleteSteamBind } from '../utils/api'
 import { showToast } from '../hooks/useToast'
 import type { SteamBindItem } from '../types'
-import { IconSteam, IconPlus, IconTrash, IconUsers } from '../components/icons'
+import { IconSteam, IconPlus, IconTrash, IconUsers, IconChevronDown, IconChevronUp } from '../components/icons'
 
 export default function SteamManagementPage() {
     const [binds, setBinds] = useState<SteamBindItem[]>([])
@@ -147,12 +147,16 @@ function SourceGroupCard({
     const [type, id] = groupKey.split(':')
     const typeLabel = type === 'group' ? '群聊' : '私聊'
     const typeIcon = type === 'group' ? <IconUsers size={18} /> : <span className="text-lg">👤</span>
+    const [expanded, setExpanded] = useState(false) // 默认折叠
 
     return (
         <div className="card overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
+            <div 
+                className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                onClick={() => setExpanded(!expanded)}
+            >
                 <span className="text-gray-500">{typeIcon}</span>
-                <div>
+                <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {typeLabel} {id}
                     </div>
@@ -160,44 +164,53 @@ function SourceGroupCard({
                         {group.users.length} 个绑定
                     </div>
                 </div>
+                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    {expanded ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
+                </button>
             </div>
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {group.users.map((user) => {
-                    const fromInfo = user.from?.find((f) => f.id === id && f.type === type)
-                    return (
-                        <div
-                            key={user.steamId}
-                            className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
-                        >
-                            <img
-                                src={user.face || 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}
-                                alt={user.personName}
-                                className="w-10 h-10 rounded-full bg-gray-200"
-                            />
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {user.personName || 'Unknown'}
-                                </div>
-                                <div className="text-xs text-gray-400 truncate">
-                                    {user.steamId}
-                                </div>
-                                {fromInfo?.nickname && (
-                                    <div className="text-xs text-blue-500">
-                                        备注: {fromInfo.nickname}
-                                    </div>
-                                )}
-                            </div>
-                            <button
-                                className="btn-ghost text-red-500 p-2"
-                                onClick={() => onDelete(user.steamId, id, type as 'private' | 'group')}
-                                title="删除绑定"
+            {expanded && (
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {group.users.map((user) => {
+                        const fromInfo = user.from?.find((f) => f.id === id && f.type === type)
+                        return (
+                            <div
+                                key={user.steamId}
+                                className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                                onClick={(e) => e.stopPropagation()} // 防止触发折叠
                             >
-                                <IconTrash size={16} />
-                            </button>
-                        </div>
-                    )
-                })}
-            </div>
+                                <img
+                                    src={user.face || 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}
+                                    alt={user.personName}
+                                    className="w-10 h-10 rounded-full bg-gray-200"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                        {user.personName || 'Unknown'}
+                                    </div>
+                                    <div className="text-xs text-gray-400 truncate">
+                                        {user.steamId}
+                                    </div>
+                                    {fromInfo?.nickname && (
+                                        <div className="text-xs text-blue-500">
+                                            备注: {fromInfo.nickname}
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    className="btn-ghost text-red-500 p-2"
+                                    onClick={(e) => {
+                                        e.stopPropagation() // 防止触发折叠
+                                        onDelete(user.steamId, id, type as 'private' | 'group')
+                                    }}
+                                    title="删除绑定"
+                                >
+                                    <IconTrash size={16} />
+                                </button>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }
