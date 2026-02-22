@@ -17,8 +17,11 @@ export interface PluginConfig {
     debug: boolean
     commandPrefix: string
     cooldownSeconds: number
+    pollingIntervalSeconds: number
+    steamApiKey: string
+    adminUsers: string[]
+    notifyStatusTypes: string[]
     groupConfigs?: Record<string, GroupConfig>
-    // TODO: 在这里添加你的插件配置项类型
 }
 
 export interface GroupConfig {
@@ -39,4 +42,18 @@ export interface ApiResponse<T = unknown> {
     code: number
     data?: T
     message?: string
+}
+
+// Steam 绑定相关类型
+export interface FromInfo {
+    id: string
+    type: 'private' | 'group'
+    nickname?: string
+}
+
+export interface SteamBindItem {
+    steamId: string
+    personName?: string
+    face?: string
+    from?: FromInfo[]
 }
