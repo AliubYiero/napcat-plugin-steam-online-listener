@@ -317,7 +317,10 @@ class SteamPollingService {
 		try {
 			// 构建SVG内容
 			const statusText = this.getStatusText( change );
-			const gameName = change.newStatus.gameextrainfo || '';
+			// 对于退出游戏状态，使用旧状态中的游戏名称；其他状态使用新状态
+			const gameName = ( change.changeType === 'outgame' || change.changeType === 'quitGame' )
+				? ( change.oldStatus?.gameextrainfo || '' )
+				: ( change.newStatus.gameextrainfo || '' );
 			const hasGameName = !!gameName;
 			
 			// 固定宽度, 高度
