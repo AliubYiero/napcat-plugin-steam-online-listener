@@ -29,7 +29,7 @@ class SteamPollingService {
 		// 限制轮询间隔范围：最小1秒，最大1小时（3600秒）
 		const intervalSeconds = Math.min(
 			3600, // 最大1小时
-			Math.max( 1, pluginState.config.pollingIntervalSeconds || 60 )
+			Math.max( 1, pluginState.config.pollingIntervalSeconds || 60 ),
 		);
 		return intervalSeconds * 1000;
 	}
@@ -165,7 +165,7 @@ class SteamPollingService {
 		
 		// 过滤掉不需要推送的状态变化
 		const filteredChanges = changes.filter( change =>
-			notifyStatusTypes.includes( change.changeType )
+			notifyStatusTypes.includes( change.changeType ),
 		);
 		
 		if ( filteredChanges.length === 0 ) {
@@ -238,29 +238,30 @@ class SteamPollingService {
 					message += ' 开始玩游戏了';
 				}
 				break;
-					case 'outgame':
-						message += ` 结束游玩 ${ change.oldStatus?.gameextrainfo || '' }`;
-						// 如果有游戏开始时间，计算并显示游玩时长
-						if (change.oldStatus?.gameStartTime) {
-							const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-							const playTimeMinutes = Math.floor(playTimeMs / 60000);
-							const playTimeHours = Math.floor(playTimeMinutes / 60);
-							const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-			
-							let playTimeStr = '';
-							if (playTimeHours > 0) {
-								playTimeStr += `${playTimeHours}小时`;
-							}
-							if (playTimeMinutes > 0) {
-								playTimeStr += `${playTimeMinutes % 60}分钟`;
-							}
-							if (playTimeSeconds > 0 || playTimeStr === '') {
-								playTimeStr += `${playTimeSeconds}秒`;
-							}
-			
-							message += `（游玩时长：${playTimeStr}）`;
-						}
-						break;			case 'inAfk':
+			case 'outgame':
+				message += ` 结束游玩 ${ change.oldStatus?.gameextrainfo || '' }`;
+				// 如果有游戏开始时间，计算并显示游玩时长
+				if ( change.oldStatus?.gameStartTime ) {
+					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
+					const playTimeHours = Math.floor( playTimeMinutes / 60 );
+					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
+					
+					let playTimeStr = '';
+					if ( playTimeHours > 0 ) {
+						playTimeStr += `${ playTimeHours }小时`;
+					}
+					if ( playTimeMinutes > 0 ) {
+						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
+					}
+					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
+						playTimeStr += `${ playTimeSeconds }秒`;
+					}
+					
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				break;
+			case 'inAfk':
 				message += ' 开始挂机';
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
@@ -272,29 +273,30 @@ class SteamPollingService {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
 				}
 				break;
-					case 'quitGame':
-						message += ` 结束游玩并下线 ${ change.oldStatus?.gameextrainfo || '' }`;
-						// 如果有游戏开始时间，计算并显示游玩时长
-						if (change.oldStatus?.gameStartTime) {
-							const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-							const playTimeMinutes = Math.floor(playTimeMs / 60000);
-							const playTimeHours = Math.floor(playTimeMinutes / 60);
-							const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-			
-							let playTimeStr = '';
-							if (playTimeHours > 0) {
-								playTimeStr += `${playTimeHours}小时`;
-							}
-							if (playTimeMinutes > 0) {
-								playTimeStr += `${playTimeMinutes % 60}分钟`;
-							}
-							if (playTimeSeconds > 0 || playTimeStr === '') {
-								playTimeStr += `${playTimeSeconds}秒`;
-							}
-			
-							message += `（游玩时长：${playTimeStr}）`;
-						}
-						break;			default:
+			case 'quitGame':
+				message += ` 结束游玩并下线 ${ change.oldStatus?.gameextrainfo || '' }`;
+				// 如果有游戏开始时间，计算并显示游玩时长
+				if ( change.oldStatus?.gameStartTime ) {
+					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
+					const playTimeHours = Math.floor( playTimeMinutes / 60 );
+					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
+					
+					let playTimeStr = '';
+					if ( playTimeHours > 0 ) {
+						playTimeStr += `${ playTimeHours }小时`;
+					}
+					if ( playTimeMinutes > 0 ) {
+						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
+					}
+					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
+						playTimeStr += `${ playTimeSeconds }秒`;
+					}
+					
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				break;
+			default:
 				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
@@ -346,14 +348,41 @@ class SteamPollingService {
 			const svgWidth = Math.max( MIN_SVG_WIDTH, leftPadding + maxTextWidth + rightPadding );
 			const svgHeight = 100;
 			
-			// 构建游戏名称行（仅当存在时显示）
-			const gameNameLine = hasGameName
-				? `<text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ this.escapeXml( gameName ) }</text>`
-				: '';
+			const imageFace = bindItem.face
+				|| change.newStatus.avatarmedium
+				|| "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg";
 			
-			const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ svgWidth } ${ svgHeight }">
+			const notHasGameNameSvgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ svgWidth } ${ svgHeight }">
+  <!-- 背景 -->
   <rect width="${ svgWidth }" height="${ svgHeight }" fill="#202227"/>
-  <image href="${ bindItem.face || change.newStatus.avatarmedium }"
+  
+  <!-- 用户头像 -->
+  <image href="${ imageFace }"
+         x="10" y="10" width="80" height="80"
+         preserveAspectRatio="xMidYMid slice" />
+  
+  <!-- 状态指示条 -->
+  <rect x="90" y="10" width="4" height="80" fill="#4cb4ff"/>
+  
+  <!-- 文本内容 -->
+  <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
+    <!-- 用户名 + 可选昵称 -->
+    <text x="115" y="36" font-size="18" font-weight="bold">
+      <tspan fill="#4cb4ff">${ this.escapeXml( change.newStatus.personaname ) }</tspan>
+       ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ this.escapeXml( fromInfo.nickname ) })</tspan>` : '' }
+    </text>
+    
+    <!-- 状态文本 -->
+    <text x="115" y="68" fill="#898a8b" font-size="16">
+      <tspan fill="#898a8b">当前</tspan>
+      <tspan fill="#4cb4ff">${ this.escapeXml( statusText ) }</tspan>
+    </text>
+  </g>
+</svg>`;
+			
+			const hasGameNameSvgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ svgWidth } ${ svgHeight }">
+  <rect width="${ svgWidth }" height="${ svgHeight }" fill="#202227"/>
+  <image href="${ imageFace }"
          x="10" y="10" width="80" height="80"
          preserveAspectRatio="xMidYMid slice" />
   <rect x="90" y="10" width="4" height="80" fill="#4CAF50"/>
@@ -362,12 +391,13 @@ class SteamPollingService {
       <tspan fill="#cee8b1">${ this.escapeXml( change.newStatus.personaname ) }</tspan>
       ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ this.escapeXml( fromInfo.nickname ) })</tspan>` : '' }
     </text>
-    <text x="115" y="58" fill="#898a8b" font-size="16">
+    <text x="115" y="59" fill="#898a8b" font-size="16">
       ${ this.escapeXml( statusText ) }
     </text>
-    ${ gameNameLine }
+    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ this.escapeXml( gameName ) }</text>
   </g>
 </svg>`;
+			const svgContent = hasGameName ? hasGameNameSvgContent : notHasGameNameSvgContent;
 			
 			// 使用 svg-convert 将 SVG 渲染为 PNG 并转换为 base64
 			const svgBase64 = await this.renderSvgToBase64( svgContent );
@@ -465,9 +495,9 @@ class SteamPollingService {
 	private getStatusText( change: StatusChange ): string {
 		switch ( change.changeType ) {
 			case 'online':
-				return '上线';
+				return '在线';
 			case 'offline':
-				return '下线';
+				return '离线';
 			case 'ingame':
 				return '正在玩';
 			case 'outgame':
@@ -490,7 +520,7 @@ class SteamPollingService {
 	 */
 	private isFullWidthChar( char: string ): boolean {
 		const code = char.codePointAt( 0 ) || 0;
-
+		
 		return (
 			// CJK 统一表意文字及扩展区
 			( code >= 0x4E00 && code <= 0x9FFF ) ||
@@ -510,7 +540,7 @@ class SteamPollingService {
 			( code >= 0x3000 && code <= 0x303F )
 		);
 	}
-
+	
 	/**
 	 * 计算字符串的预计显示宽度
 	 * @param text 输入字符串
@@ -519,16 +549,16 @@ class SteamPollingService {
 	 */
 	private calculateTextWidth( text: string, fontSize: number ): number {
 		if ( !text || fontSize <= 0 ) return 0;
-
+		
 		let totalWidth = 0;
 		for ( const char of text ) {
 			const widthFactor = this.isFullWidthChar( char ) ? 1 : 0.6;
 			totalWidth += fontSize * widthFactor;
 		}
-
+		
 		return totalWidth;
 	}
-
+	
 	/**
 	 * 转义 XML 特殊字符
 	 */
