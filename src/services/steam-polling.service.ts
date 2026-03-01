@@ -301,14 +301,11 @@ class SteamPollingService {
 							message += ` - ${ formattedGameName }`;
 						}
 						else if ( change.newStatus.gameextrainfo ) {
-							message += ` - ${ change.newStatus.gameextrainfo }`;
-						}
-						break;
-					}
-					break;
-				}
-				case 'quitGame': {
-					let gameName = change.oldStatus?.gameextrainfo || '';
+													message += ` - ${ change.newStatus.gameextrainfo }`;
+												}
+												break;
+											}
+											case 'quitGame': {					let gameName = change.oldStatus?.gameextrainfo || '';
 					// 尝试获取格式化后的游戏名称
 					if ( change.oldStatus?.gameid && gameName ) {
 						gameName = await gameNameService.getFormattedGameName(
