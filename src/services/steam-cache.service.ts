@@ -4,6 +4,7 @@
  */
 
 import { pluginState } from '../core/state';
+import { gameNameService } from './game-name.service.js';
 import type { SteamPlayerSummary } from './steam.service';
 
 // ==================== 缓存数据结构 ====================
@@ -174,6 +175,14 @@ class SteamCacheService {
         // 如果没有旧状态，不视为变化（这是首次查询）
         if (!oldStatus) {
             return null;
+        }
+
+        // 预加载游戏名称（懒加载模式）- 如果正在玩游戏，提前获取中文名
+        if (newStatus.gameid && newStatus.gameextrainfo) {
+            // 异步触发，不等待结果
+            gameNameService.getFormattedGameName(newStatus.gameid, newStatus.gameextrainfo).catch(err => {
+                pluginState.logger.warn('[SteamCacheService] 预加载游戏名称失败', err);
+            });
         }
 
         // 检查综合状态变化（在线状态和游戏状态的组合）
