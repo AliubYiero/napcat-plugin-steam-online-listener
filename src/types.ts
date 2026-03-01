@@ -75,3 +75,18 @@ export interface SteamBindItem {
 
 /** Steam 绑定数据集合 */
 export type SteamBindData = SteamBindItem[];
+
+// ==================== Steam 游戏名称 ====================
+
+/**
+ * Steam 游戏名称信息
+ */
+export interface GameName {
+    en: string;      // 英文名（来自Steam API的gameextrainfo）
+    zh?: string;     // 中文名（可选，从Steam商店API获取）
+}
+
+/**
+ * 游戏名称映射表，key为appid
+ */
+export type GameNameMap = Record<string, GameName>;
