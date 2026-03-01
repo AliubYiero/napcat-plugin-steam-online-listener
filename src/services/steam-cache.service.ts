@@ -19,6 +19,8 @@ export interface SteamStatusCacheItem {
     personastate: number;
     /** 正在玩的游戏信息（如有）*/
     gameextrainfo?: string;
+    /** 当前游戏 ID */
+    gameid?: string;
     /** 最后更新时间戳 */
     lastUpdateTime: number;
     /** 游戏开始时间戳（可选，仅在玩游戏时记录）*/
@@ -97,6 +99,7 @@ class SteamCacheService {
             personaname: playerSummary.personaname,
             personastate: playerSummary.personastate,
             gameextrainfo: playerSummary.gameextrainfo,
+            gameid: playerSummary.gameid,
             lastUpdateTime: now,
             gameStartTime,
         };
@@ -136,6 +139,7 @@ class SteamCacheService {
                 personaname: player.personaname,
                 personastate: player.personastate,
                 gameextrainfo: player.gameextrainfo,
+                gameid: player.gameid,
                 lastUpdateTime: now,
                 gameStartTime,
             };

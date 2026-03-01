@@ -194,8 +194,9 @@ class SteamPollingService {
 						for ( const fromInfo of bindItem.from ) {
 							try {
 								// 为每个来源生成带有该来源自定义昵称的消息
-															const message = await this.generateStatusChangeMessageForFrom( change, fromInfo, bindItem );
-															await this.sendMessageToSource( fromInfo, message, bindItem, change );							}
+								const message = await this.generateStatusChangeMessageForFrom( change, fromInfo, bindItem );
+								await this.sendMessageToSource( fromInfo, message, bindItem, change );
+							}
 							catch ( error ) {
 								pluginState.logger.error( `向 ${ fromInfo.type } ${ fromInfo.id } 推送消息时出错:`, error );
 							}
@@ -230,28 +231,28 @@ class SteamPollingService {
 			case 'offline':
 				message += ' 离线了';
 				break;
-					case 'ingame':
-						if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
-							const formattedGameName = await gameNameService.getFormattedGameName(
-								change.newStatus.gameid,
-								change.newStatus.gameextrainfo
-							);
-							message += ` 正在游玩 ${ formattedGameName }`;
-						}
-						else if ( change.newStatus.gameextrainfo ) {
-							message += ` 正在游玩 ${ change.newStatus.gameextrainfo }`;
-						}
-						else {
-							message += ' 开始玩游戏了';
-						}
-						break;
+			case 'ingame':
+				if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+					const formattedGameName = await gameNameService.getFormattedGameName(
+						change.newStatus.gameid,
+						change.newStatus.gameextrainfo,
+					);
+					message += ` 正在游玩 ${ formattedGameName }`;
+				}
+				else if ( change.newStatus.gameextrainfo ) {
+					message += ` 正在游玩 ${ change.newStatus.gameextrainfo }`;
+				}
+				else {
+					message += ' 开始玩游戏了';
+				}
+				break;
 			case 'outgame': {
 				let gameName = change.oldStatus?.gameextrainfo || '';
 				// 尝试获取格式化后的游戏名称
 				if ( change.oldStatus?.gameid && gameName ) {
 					gameName = await gameNameService.getFormattedGameName(
 						change.oldStatus.gameid,
-						gameName
+						gameName,
 					);
 				}
 				message += ` 结束游玩 ${ gameName }`;
@@ -273,48 +274,49 @@ class SteamPollingService {
 						playTimeStr += `${ playTimeSeconds }秒`;
 					}
 					
-									message += `（游玩时长：${ playTimeStr }）`;
-								}
-								break;
-							}
-									case 'inAfk': {
-										message += ' 开始挂机';
-										if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
-											const formattedGameName = await gameNameService.getFormattedGameName(
-												change.newStatus.gameid,
-												change.newStatus.gameextrainfo
-											);
-											message += ` - ${ formattedGameName }`;
-										}
-										else if ( change.newStatus.gameextrainfo ) {
-											message += ` - ${ change.newStatus.gameextrainfo }`;
-										}
-										break;
-									}
-					case 'outAfk': {
-						message += ' 结束挂机';
-						if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
-							const formattedGameName = await gameNameService.getFormattedGameName(
-								change.newStatus.gameid,
-								change.newStatus.gameextrainfo
-							);
-							message += ` - ${ formattedGameName }`;
-						}
-						else if ( change.newStatus.gameextrainfo ) {
-													message += ` - ${ change.newStatus.gameextrainfo }`;
-												}
-												break;
-											}
-											case 'quitGame': {					let gameName = change.oldStatus?.gameextrainfo || '';
-					// 尝试获取格式化后的游戏名称
-					if ( change.oldStatus?.gameid && gameName ) {
-						gameName = await gameNameService.getFormattedGameName(
-							change.oldStatus.gameid,
-							gameName
-						);
-					}
-					message += ` 结束游玩并下线 ${ gameName }`;
-					// 如果有游戏开始时间，计算并显示游玩时长
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				break;
+			}
+			case 'inAfk': {
+				message += ' 开始挂机';
+				if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+					const formattedGameName = await gameNameService.getFormattedGameName(
+						change.newStatus.gameid,
+						change.newStatus.gameextrainfo,
+					);
+					message += ` - ${ formattedGameName }`;
+				}
+				else if ( change.newStatus.gameextrainfo ) {
+					message += ` - ${ change.newStatus.gameextrainfo }`;
+				}
+				break;
+			}
+			case 'outAfk': {
+				message += ' 结束挂机';
+				if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+					const formattedGameName = await gameNameService.getFormattedGameName(
+						change.newStatus.gameid,
+						change.newStatus.gameextrainfo,
+					);
+					message += ` - ${ formattedGameName }`;
+				}
+				else if ( change.newStatus.gameextrainfo ) {
+					message += ` - ${ change.newStatus.gameextrainfo }`;
+				}
+				break;
+			}
+			case 'quitGame': {
+				let gameName = change.oldStatus?.gameextrainfo || '';
+				// 尝试获取格式化后的游戏名称
+				if ( change.oldStatus?.gameid && gameName ) {
+					gameName = await gameNameService.getFormattedGameName(
+						change.oldStatus.gameid,
+						gameName,
+					);
+				}
+				message += ` 结束游玩并下线 ${ gameName }`;
+				// 如果有游戏开始时间，计算并显示游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
 					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
 					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
@@ -332,11 +334,12 @@ class SteamPollingService {
 						playTimeStr += `${ playTimeSeconds }秒`;
 					}
 					
-									message += `（游玩时长：${ playTimeStr }）`;
-								}
-								break;
-							}
-							default:				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				break;
+			}
+			default:
+				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
 				}
@@ -389,7 +392,7 @@ class SteamPollingService {
 			
 			const imageFace = bindItem.face
 				|| change.newStatus.avatarmedium
-				|| "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg";
+				|| 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg';
 			
 			const notHasGameNameSvgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ svgWidth } ${ svgHeight }">
   <!-- 背景 -->
