@@ -5,6 +5,7 @@
 
 import { pluginState } from '../core/state';
 import { steamService } from './steam.service';
+import { gameNameService } from './game-name.service.js';
 import {
 	steamCacheService,
 	type StatusChanges,
@@ -193,9 +194,8 @@ class SteamPollingService {
 						for ( const fromInfo of bindItem.from ) {
 							try {
 								// 为每个来源生成带有该来源自定义昵称的消息
-								const message = this.generateStatusChangeMessageForFrom( change, fromInfo, bindItem );
-								await this.sendMessageToSource( fromInfo, message, bindItem, change );
-							}
+															const message = await this.generateStatusChangeMessageForFrom( change, fromInfo, bindItem );
+															await this.sendMessageToSource( fromInfo, message, bindItem, change );							}
 							catch ( error ) {
 								pluginState.logger.error( `向 ${ fromInfo.type } ${ fromInfo.id } 推送消息时出错:`, error );
 							}
@@ -212,11 +212,11 @@ class SteamPollingService {
 	/**
 	 * 为特定来源生成状态变化推送消息
 	 */
-	private generateStatusChangeMessageForFrom(
+	private async generateStatusChangeMessageForFrom(
 		change: StatusChange,
 		fromInfo: { id: string; type: 'private' | 'group'; nickname?: string },
 		bindItem: SteamBindItem,
-	): string {
+	): Promise<string> {
 		// 获取该来源的自定义昵称（如果存在），否则使用原始昵称
 		const customNickname = fromInfo.nickname || change.newStatus.personaname;
 		const timestamp = new Date().toLocaleString( 'zh-CN' );
@@ -230,16 +230,31 @@ class SteamPollingService {
 			case 'offline':
 				message += ' 离线了';
 				break;
-			case 'ingame':
-				if ( change.newStatus.gameextrainfo ) {
-					message += ` 正在游玩 ${ change.newStatus.gameextrainfo }`;
+					case 'ingame':
+						if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+							const formattedGameName = await gameNameService.getFormattedGameName(
+								change.newStatus.gameid,
+								change.newStatus.gameextrainfo
+							);
+							message += ` 正在游玩 ${ formattedGameName }`;
+						}
+						else if ( change.newStatus.gameextrainfo ) {
+							message += ` 正在游玩 ${ change.newStatus.gameextrainfo }`;
+						}
+						else {
+							message += ' 开始玩游戏了';
+						}
+						break;
+			case 'outgame': {
+				let gameName = change.oldStatus?.gameextrainfo || '';
+				// 尝试获取格式化后的游戏名称
+				if ( change.oldStatus?.gameid && gameName ) {
+					gameName = await gameNameService.getFormattedGameName(
+						change.oldStatus.gameid,
+						gameName
+					);
 				}
-				else {
-					message += ' 开始玩游戏了';
-				}
-				break;
-			case 'outgame':
-				message += ` 结束游玩 ${ change.oldStatus?.gameextrainfo || '' }`;
+				message += ` 结束游玩 ${ gameName }`;
 				// 如果有游戏开始时间，计算并显示游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
 					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
@@ -258,24 +273,51 @@ class SteamPollingService {
 						playTimeStr += `${ playTimeSeconds }秒`;
 					}
 					
-					message += `（游玩时长：${ playTimeStr }）`;
+									message += `（游玩时长：${ playTimeStr }）`;
+								}
+								break;
+							}
+									case 'inAfk': {
+										message += ' 开始挂机';
+										if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+											const formattedGameName = await gameNameService.getFormattedGameName(
+												change.newStatus.gameid,
+												change.newStatus.gameextrainfo
+											);
+											message += ` - ${ formattedGameName }`;
+										}
+										else if ( change.newStatus.gameextrainfo ) {
+											message += ` - ${ change.newStatus.gameextrainfo }`;
+										}
+										break;
+									}
+					case 'outAfk': {
+						message += ' 结束挂机';
+						if ( change.newStatus.gameextrainfo && change.newStatus.gameid ) {
+							const formattedGameName = await gameNameService.getFormattedGameName(
+								change.newStatus.gameid,
+								change.newStatus.gameextrainfo
+							);
+							message += ` - ${ formattedGameName }`;
+						}
+						else if ( change.newStatus.gameextrainfo ) {
+							message += ` - ${ change.newStatus.gameextrainfo }`;
+						}
+						break;
+					}
+					break;
 				}
-				break;
-			case 'inAfk':
-				message += ' 开始挂机';
-				if ( change.newStatus.gameextrainfo ) {
-					message += ` - ${ change.newStatus.gameextrainfo }`;
-				}
-				break;
-			case 'outAfk':
-				message += ' 结束挂机';
-				if ( change.newStatus.gameextrainfo ) {
-					message += ` - ${ change.newStatus.gameextrainfo }`;
-				}
-				break;
-			case 'quitGame':
-				message += ` 结束游玩并下线 ${ change.oldStatus?.gameextrainfo || '' }`;
-				// 如果有游戏开始时间，计算并显示游玩时长
+				case 'quitGame': {
+					let gameName = change.oldStatus?.gameextrainfo || '';
+					// 尝试获取格式化后的游戏名称
+					if ( change.oldStatus?.gameid && gameName ) {
+						gameName = await gameNameService.getFormattedGameName(
+							change.oldStatus.gameid,
+							gameName
+						);
+					}
+					message += ` 结束游玩并下线 ${ gameName }`;
+					// 如果有游戏开始时间，计算并显示游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
 					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
 					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
@@ -293,11 +335,11 @@ class SteamPollingService {
 						playTimeStr += `${ playTimeSeconds }秒`;
 					}
 					
-					message += `（游玩时长：${ playTimeStr }）`;
-				}
-				break;
-			default:
-				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
+									message += `（游玩时长：${ playTimeStr }）`;
+								}
+								break;
+							}
+							default:				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
 				}
