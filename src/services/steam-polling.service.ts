@@ -362,9 +362,20 @@ class SteamPollingService {
 			// 构建SVG内容
 			const statusText = this.getStatusText( change );
 			// 对于退出游戏状态，使用旧状态中的游戏名称；其他状态使用新状态
-			const gameName = ( change.changeType === 'outgame' || change.changeType === 'quitGame' )
-				? ( change.oldStatus?.gameextrainfo || '' )
-				: ( change.newStatus.gameextrainfo || '' );
+			let gameName = '';
+			if ( ( change.changeType === 'outgame' || change.changeType === 'quitGame' )
+				&& ( change.oldStatus && change.oldStatus.gameextrainfo && change.oldStatus.gameid ) ) {
+				gameName = await gameNameService.getFormattedGameName(
+					change.oldStatus.gameid,
+					change.oldStatus.gameextrainfo,
+				);
+			}
+			else if ( change.newStatus.gameid && change.newStatus.gameextrainfo ) {
+				gameName = await gameNameService.getFormattedGameName(
+					change.newStatus.gameid,
+					change.newStatus.gameextrainfo,
+				);
+			}
 			const hasGameName = !!gameName;
 			
 			// 动态计算宽度
