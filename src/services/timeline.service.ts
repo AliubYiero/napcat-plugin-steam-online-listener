@@ -44,7 +44,7 @@ class TimelineService {
      * 获取当天日志文件路径
      */
     private getTodayLogPath(): string {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const today = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
         const filename = `${LOG_FILE_PREFIX}-${today}.json`;
         return path.join(this.logDir, filename);
     }
