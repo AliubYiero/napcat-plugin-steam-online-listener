@@ -112,3 +112,20 @@ export interface TimelineLog {
     /** 数据行 */
     d: TimelineLogEntry[];
 }
+
+// ==================== Steam 每日报告 ====================
+
+/** 报告中单个游戏的游玩数据 */
+export interface ReportPlayedGame {
+    name: string;       // 游戏名称（通过 gameNameService 格式化）
+    duration: number;   // 游玩时长（秒）
+}
+
+/** 报告中单个用户的数据 */
+export interface ReportUser {
+    steamId: string;        // STEAM ID64
+    personName: string;     // Steam 用户的昵称
+    onlineDuration: number; // 在线时长（秒）
+    playedDuration: number; // 游戏时长（秒）
+    playedGame?: ReportPlayedGame[];
+}
