@@ -121,6 +121,7 @@ class TimelineService {
 
     /**
      * 午夜快照：记录所有用户当前状态
+     * 根据 personastate 推导实际状态类型
      * @param cache 当前缓存的所有用户状态
      */
     midnightSnapshot(cache: Record<string, SteamStatusCacheItem>): void {
@@ -130,11 +131,24 @@ class TimelineService {
         const log = this.loadLogFile(logPath);
         const timestamp = Date.now();
 
-        // 为每个用户记录当前状态
         for (const [steamId, status] of Object.entries(cache)) {
+            // 根据 personastate 推导实际状态
+            let changeType: string;
+            if (status.personastate === 0) {
+                changeType = 'offline';
+            } else if (status.personastate === 1 && status.gameid) {
+                changeType = 'ingame';
+            } else if (status.personastate === 1) {
+                changeType = 'online';
+            } else if (status.personastate === 3 || status.personastate === 4) {
+                changeType = 'inAfk';
+            } else {
+                changeType = 'other';
+            }
+
             const entry: TimelineLogEntry = [
                 steamId,
-                'snapshot',
+                changeType,
                 status.gameid || null,
                 timestamp,
             ];
