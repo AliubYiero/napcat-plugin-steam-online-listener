@@ -443,5 +443,96 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
         }
     });
 
+    /** 导入数据 - 从 zip 文件恢复数据 */
+    router.postNoAuth('/data-import', async (req, res) => {
+        try {
+            // 检查是否有文件上传
+            if (!req.body || !Buffer.isBuffer(req.body)) {
+                return res.status(400).json({ code: -1, message: '请上传文件' });
+            }
+
+            const dataPath = pluginState.ctx.dataPath;
+
+            // 确保数据目录存在
+            if (!fs.existsSync(dataPath)) {
+                fs.mkdirSync(dataPath, { recursive: true });
+            }
+
+            // 读取 zip 文件
+            let zip: AdmZip;
+            try {
+                zip = new AdmZip(req.body);
+            } catch (error) {
+                return res.status(400).json({ code: -1, message: '无效的压缩包文件' });
+            }
+
+            const zipEntries = zip.getEntries();
+            const jsonEntries = zipEntries.filter(entry =>
+                entry.entryName.endsWith('.json') && !entry.isDirectory
+            );
+
+            if (jsonEntries.length === 0) {
+                return res.status(400).json({ code: -1, message: '压缩包内没有找到数据文件' });
+            }
+
+            // 验证所有 JSON 文件格式
+            const importedFiles: string[] = [];
+            for (const entry of jsonEntries) {
+                const content = entry.getData().toString('utf-8');
+                try {
+                    JSON.parse(content);
+                } catch (error) {
+                    return res.status(400).json({
+                        code: -1,
+                        message: `数据文件格式无效: ${entry.entryName}`
+                    });
+                }
+                importedFiles.push(entry.entryName);
+            }
+
+            // 备份现有数据（复制到 backup 目录）
+            const backupDir = path.join(dataPath, '../backup');
+            if (!fs.existsSync(backupDir)) {
+                fs.mkdirSync(backupDir, { recursive: true });
+            }
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const existingFiles = fs.readdirSync(dataPath).filter(f => f.endsWith('.json'));
+
+            for (const file of existingFiles) {
+                const sourcePath = path.join(dataPath, file);
+                const backupPath = path.join(backupDir, `${file}.pre-import-${timestamp}`);
+                fs.copyFileSync(sourcePath, backupPath);
+            }
+
+            // 写入新数据（覆盖）
+            for (const entry of jsonEntries) {
+                // 安全检查：防止路径遍历攻击
+                const fileName = path.basename(entry.entryName);
+                if (fileName !== entry.entryName) {
+                    ctx.logger.warn(`跳过包含路径遍历的文件: ${entry.entryName}`);
+                    continue;
+                }
+
+                const targetPath = path.join(dataPath, fileName);
+                const content = entry.getData();
+                fs.writeFileSync(targetPath, content);
+            }
+
+            // 重新加载配置
+            pluginState.loadConfig();
+
+            ctx.logger.info(`数据导入完成: ${importedFiles.length} 个文件`);
+            res.json({
+                code: 0,
+                message: '导入成功',
+                data: { importedFiles }
+            });
+        } catch (error) {
+            ctx.logger.error('数据导入失败:', error);
+            res.status(500).json({ code: -1, message: `导入失败: ${error}` });
+        }
+    });
+
     ctx.logger.debug('API 路由注册完成');
 }
