@@ -90,24 +90,39 @@ class GameNameService {
     /**
      * 格式化游戏名称
      * 规则:
-     * 1. 中文名不存在或等于英文名: 返回英文名
-     * 2. 中文名包含英文名: 返回中文名
-     * 3. 其他情况: 返回 "英文名 / 中文名"
+     * 1. 中文名不存在: 返回英文名
+     * 2. 中文名等于英文名(忽略大小写): 返回英文名
+     * 3. 中文名包含英文名(忽略大小写): 返回中文名
+     * 4. 英文名包含中文名: 返回英文名
+     * 5. 其他情况: 返回 "英文名 / 中文名"
      */
     private formatGameName(gameName: GameName): string {
         const { en, zh } = gameName;
 
-        // 规则1: 中文名不存在或等于英文名
-        if (!zh || zh === en) {
+        // 规则1: 中文名不存在
+        if (!zh) {
             return en;
         }
 
-        // 规则2: 中文名包含英文名（如 "Palworld / 幻兽帕鲁"）
-        if (zh.includes(en)) {
+        const enLower = en.toLowerCase();
+        const zhLower = zh.toLowerCase();
+
+        // 规则2: 中文名等于英文名(忽略大小写)
+        if (zhLower === enLower) {
+            return en;
+        }
+
+        // 规则3: 中文名包含英文名(忽略大小写)
+        if (zhLower.includes(enLower)) {
             return zh;
         }
 
-        // 规则3: 返回 "英文名 / 中文名"
+        // 规则4: 英文名包含中文名
+        if (en.includes(zh)) {
+            return en;
+        }
+
+        // 规则5: 返回 "英文名 / 中文名"
         return `${en} / ${zh}`;
     }
 
