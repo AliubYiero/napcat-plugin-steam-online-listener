@@ -90,3 +90,25 @@ export interface GameName {
  * 游戏名称映射表，key为appid
  */
 export type GameNameMap = Record<string, GameName>;
+
+// ==================== Timeline 时间线记录 ====================
+
+/**
+ * 时间线日志表头字段
+ */
+export type TimelineLogHeader = ['steamId', 'changeType', 'gameId', 'updateTime'];
+
+/**
+ * 时间线单条数据记录 [steamId, 'changeType', 'gameId', 'updateTime']
+ */
+export type TimelineLogEntry = [string, string, string | null, number];
+
+/**
+ * 时间线日志文件结构（数组格式减少体积）
+ */
+export interface TimelineLog {
+    /** 表头 */
+    h: TimelineLogHeader;
+    /** 数据行 */
+    d: TimelineLogEntry[];
+}
