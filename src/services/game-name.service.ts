@@ -42,6 +42,38 @@ class GameNameService {
     }
 
     /**
+     * 设置游戏名称（创建或更新）
+     * 用于显式创建/更新游戏记录
+     * @param appid Steam游戏ID
+     * @param enName 英文名称
+     */
+    setGameName(appid: string, enName: string): void {
+        this.ensureInitialized();
+
+        // 参数校验
+        if (!appid || !enName) {
+            pluginState.logger.warn('[GameNameService] appid或enName为空，无法设置游戏名称');
+            return;
+        }
+
+        // 设置英文名称（覆盖或创建）
+        if (!this.gameNames![appid]) {
+            this.gameNames![appid] = { en: enName };
+            pluginState.logger.info(`[GameNameService] 创建新游戏记录: ${enName} (appid=${appid})`);
+        } else {
+            this.gameNames![appid].en = enName;
+            pluginState.logger.info(`[GameNameService] 更新游戏英文名: ${enName} (appid=${appid})`);
+        }
+
+        this.saveGameNames();
+
+        // 异步获取中文名（如果不存在且不在获取中）
+        if (!this.gameNames![appid].zh && !this.fetchingSet.has(appid)) {
+            this.fetchChineseName(appid, enName);
+        }
+    }
+
+    /**
      * 获取游戏名称对象（懒加载）
      * 如果游戏不存在于表中且提供了enName，会创建新记录
      * 如果中文名不存在，会异步获取
