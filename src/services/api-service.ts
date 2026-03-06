@@ -30,6 +30,7 @@ import {
     updateSteamBindItem
 } from '../handlers/steam-utils';
 import type { FromInfo } from '../types';
+import { gameNameService } from './game-name.service';
 
 /**
  * 注册 API 路由
@@ -326,6 +327,69 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
             res.json({ code: 0, message: '删除成功' });
         } catch (error) {
             pluginState.logger.error('删除 Steam 绑定失败:', error);
+            res.status(500).json({ code: -1, message: '删除失败' });
+        }
+    });
+
+    // ==================== 游戏名称管理（无鉴权）====================
+
+    /** 获取游戏名称列表 */
+    router.getNoAuth('/game-names', (_req, res) => {
+        try {
+            const games = gameNameService.getAllGames();
+            res.json({ code: 0, data: games });
+        } catch (error) {
+            pluginState.logger.error('获取游戏名称列表失败:', error);
+            res.status(500).json({ code: -1, message: '获取失败' });
+        }
+    });
+
+    /** 更新游戏中文名称 */
+    router.putNoAuth('/game-name/:appid', async (req, res) => {
+        try {
+            const appid = req.params?.appid;
+            const body = req.body as Record<string, unknown> | undefined;
+            const { zh } = body || {};
+
+            if (!appid) {
+                return res.status(400).json({ code: -1, message: '缺少游戏 ID' });
+            }
+
+            if (typeof zh !== 'string') {
+                return res.status(400).json({ code: -1, message: '中文名称必须是字符串' });
+            }
+
+            const success = gameNameService.updateChineseName(appid, zh);
+            if (!success) {
+                return res.status(404).json({ code: -1, message: '游戏不存在' });
+            }
+
+            ctx.logger.info(`游戏中文名已更新: ${appid} -> ${zh}`);
+            res.json({ code: 0, message: '更新成功' });
+        } catch (error) {
+            pluginState.logger.error('更新游戏中文名失败:', error);
+            res.status(500).json({ code: -1, message: '更新失败' });
+        }
+    });
+
+    /** 删除游戏名称条目 */
+    router.deleteNoAuth('/game-name/:appid', async (req, res) => {
+        try {
+            const appid = req.params?.appid;
+
+            if (!appid) {
+                return res.status(400).json({ code: -1, message: '缺少游戏 ID' });
+            }
+
+            const success = gameNameService.deleteGame(appid);
+            if (!success) {
+                return res.status(404).json({ code: -1, message: '游戏不存在' });
+            }
+
+            ctx.logger.info(`游戏已删除: ${appid}`);
+            res.json({ code: 0, message: '删除成功' });
+        } catch (error) {
+            pluginState.logger.error('删除游戏失败:', error);
             res.status(500).json({ code: -1, message: '删除失败' });
         }
     });

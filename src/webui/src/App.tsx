@@ -6,16 +6,18 @@ import StatusPage from './pages/StatusPage'
 import ConfigPage from './pages/ConfigPage'
 import GroupsPage from './pages/GroupsPage'
 import SteamManagementPage from './pages/SteamManagementPage'
+import GameNamesPage from './pages/GameNamesPage'
 import { useStatus } from './hooks/useStatus'
 import { useTheme } from './hooks/useTheme'
 
-export type PageId = 'status' | 'config' | 'groups' | 'steam'
+export type PageId = 'status' | 'config' | 'groups' | 'steam' | 'gameNames'
 
 const pageConfig: Record<PageId, { title: string; desc: string }> = {
     status: { title: '仪表盘', desc: '插件运行状态与数据概览' },
     config: { title: '插件配置', desc: '基础设置与参数配置' },
     groups: { title: '群管理', desc: '管理群的启用与禁用' },
-    steam: { title: 'Steam 管理', desc: '管理 Steam 用户绑定' }
+    steam: { title: 'Steam 管理', desc: '管理 Steam 用户绑定' },
+    gameNames: { title: '游戏名管理', desc: '管理游戏中英文名称' }
 }
 
 function App() {
@@ -41,6 +43,7 @@ function App() {
             case 'config': return <ConfigPage />
             case 'groups': return <GroupsPage />
             case 'steam': return <SteamManagementPage />
+            case 'gameNames': return <GameNamesPage />
             default: return <StatusPage status={status} onRefresh={fetchStatus} />
         }
     }

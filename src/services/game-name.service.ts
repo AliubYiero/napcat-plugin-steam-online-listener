@@ -210,6 +210,61 @@ class GameNameService {
             pluginState.logger.error('[GameNameService] 保存游戏名称数据失败', error);
         }
     }
+
+    // ==================== 游戏名称管理 API ====================
+
+    /**
+     * 获取所有游戏名称
+     * @returns 游戏名称列表
+     */
+    getAllGames(): Array<{ appid: string; en: string; zh?: string }> {
+        this.ensureInitialized();
+        return Object.entries(this.gameNames || {}).map(([appid, game]) => ({
+            appid,
+            en: game.en,
+            zh: game.zh,
+        }));
+    }
+
+    /**
+     * 更新游戏中文名称
+     * @param appid Steam游戏ID
+     * @param zh 新的中文名称
+     * @returns 是否成功
+     */
+    updateChineseName(appid: string, zh: string): boolean {
+        this.ensureInitialized();
+
+        if (!appid || !this.gameNames?.[appid]) {
+            pluginState.logger.warn(`[GameNameService] 游戏不存在: ${appid}`);
+            return false;
+        }
+
+        this.gameNames[appid].zh = zh;
+        this.saveGameNames();
+        pluginState.logger.info(`[GameNameService] 更新中文名: ${this.gameNames[appid].en} -> ${zh}`);
+        return true;
+    }
+
+    /**
+     * 删除游戏名称条目
+     * @param appid Steam游戏ID
+     * @returns 是否成功
+     */
+    deleteGame(appid: string): boolean {
+        this.ensureInitialized();
+
+        if (!appid || !this.gameNames?.[appid]) {
+            pluginState.logger.warn(`[GameNameService] 游戏不存在: ${appid}`);
+            return false;
+        }
+
+        const gameName = this.gameNames[appid].en;
+        delete this.gameNames[appid];
+        this.saveGameNames();
+        pluginState.logger.info(`[GameNameService] 删除游戏: ${gameName} (appid=${appid})`);
+        return true;
+    }
 }
 
 // 导出单例（模块加载时仅创建实例，不执行初始化）

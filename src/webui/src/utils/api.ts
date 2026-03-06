@@ -94,3 +94,28 @@ export async function deleteSteamBind(steamId: string, fromId: string, type: 'pr
         method: 'DELETE',
     })
 }
+
+// ==================== 游戏名称管理 API ====================
+
+export interface GameNameItem {
+    appid: string
+    en: string
+    zh?: string
+}
+
+export async function getGameNames() {
+    return noAuthFetch<GameNameItem[]>('/game-names')
+}
+
+export async function updateGameName(appid: string, zh: string) {
+    return noAuthFetch(`/game-name/${appid}`, {
+        method: 'PUT',
+        body: JSON.stringify({ zh }),
+    })
+}
+
+export async function deleteGameName(appid: string) {
+    return noAuthFetch(`/game-name/${appid}`, {
+        method: 'DELETE',
+    })
+}
