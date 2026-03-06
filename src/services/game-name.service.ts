@@ -32,12 +32,15 @@ class GameNameService {
     /**
      * 获取格式化后的游戏名称
      * @param appid Steam游戏ID
-     * @param enName 英文名
-     * @returns 格式化后的游戏名称
+     * @param enName 英文名（可选，用于创建新记录）
+     * @returns 格式化后的游戏名称，不存在时返回null
      */
-    async getFormattedGameName(appid: string, enName: string): Promise<string> {
+    async getFormattedGameName(appid: string, enName?: string): Promise<string | null> {
         this.ensureInitialized();  // 确保初始化
         const gameName = await this.getGameName(appid, enName);
+        if (!gameName) {
+            return null;
+        }
         return this.formatGameName(gameName);
     }
 
