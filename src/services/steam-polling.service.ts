@@ -11,6 +11,7 @@ import {
 	type StatusChanges,
 	StatusChange,
 } from './steam-cache.service';
+import { timelineService } from './timeline.service';
 import {
 	sendGroupMessage,
 	sendPrivateMessage,
@@ -22,6 +23,7 @@ import type { SteamBindItem } from '../types';
 class SteamPollingService {
 	private pollingTimer: NodeJS.Timeout | null = null;
 	private isPollingActive = false;
+	private lastPollDate: string = ''; // 上次轮询日期
 	
 	/**
 	 * 获取当前轮询间隔（毫秒）
@@ -103,6 +105,21 @@ class SteamPollingService {
 		try {
 			pluginState.logger.debug( '开始执行 Steam 状态轮询' );
 			
+			// 检测日期变化（使用本地时区）
+			const today = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
+			if (this.lastPollDate && this.lastPollDate !== today) {
+				// 日期变化，执行归档和午夜快照
+				pluginState.logger.info('[SteamPollingService] 检测到日期变化，执行归档和午夜快照');
+				
+				// 1. 先记录昨天的最终状态（午夜快照）
+				const yesterdayCache = steamCacheService.getCurrentCache();
+				timelineService.midnightSnapshot(yesterdayCache);
+				
+				// 2. 检查并归档旧日志
+				timelineService.checkAndArchive();
+			}
+			this.lastPollDate = today;
+			
 			// 获取所有已绑定的 Steam 数据（不区分来源）
 			const allBindItems = this.getAllSteamBindItems();
 			
@@ -130,6 +147,10 @@ class SteamPollingService {
 						
 						if ( changes.length > 0 ) {
 							pluginState.logger.info( `检测到 ${ changes.length } 个 Steam 状态变化` );
+							
+							// 记录到时间线
+							timelineService.record(changes);
+							
 							await this.handleStatusChanges( changes, allBindItems );
 						}
 						
