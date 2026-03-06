@@ -12,6 +12,7 @@ import {
 	StatusChange,
 } from './steam-cache.service';
 import { timelineService } from './timeline.service';
+import { steamReportService } from './steam-report.service';
 import { renderSvgToBase64, escapeXml } from '../utils/svg-render';
 import {
 	sendGroupMessage,
@@ -109,14 +110,16 @@ class SteamPollingService {
 			// 检测日期变化（使用本地时区）
 			const today = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
 			if (this.lastPollDate && this.lastPollDate !== today) {
-				// 日期变化，执行归档和午夜快照
-				pluginState.logger.info('[SteamPollingService] 检测到日期变化，执行归档和午夜快照');
-				
-				// 1. 先记录昨天的最终状态（午夜快照）
+				pluginState.logger.info('[SteamPollingService] 检测到日期变化，执行每日报告和午夜快照');
+
+				// 1. 最先执行：生成并推送昨日活动报告
+				await steamReportService.generateAndPushDailyReport(this.lastPollDate);
+
+				// 2. 记录昨天的最终状态（午夜快照，使用实际状态）
 				const yesterdayCache = steamCacheService.getCurrentCache();
 				timelineService.midnightSnapshot(yesterdayCache);
-				
-				// 2. 检查并归档旧日志
+
+				// 3. 检查并归档旧日志
 				timelineService.checkAndArchive();
 			}
 			this.lastPollDate = today;
