@@ -12,6 +12,7 @@ import {
 	StatusChange,
 } from './steam-cache.service';
 import { timelineService } from './timeline.service';
+import { renderSvgToBase64, escapeXml } from '../utils/svg-render';
 import {
 	sendGroupMessage,
 	sendPrivateMessage,
@@ -484,14 +485,14 @@ class SteamPollingService {
   <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
     <!-- 用户名 + 可选昵称 -->
     <text x="115" y="36" font-size="18" font-weight="bold">
-      <tspan fill="#4cb4ff">${ this.escapeXml( change.newStatus.personaname ) }</tspan>
-       ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ this.escapeXml( fromInfo.nickname ) })</tspan>` : '' }
+      <tspan fill="#4cb4ff">${ escapeXml( change.newStatus.personaname ) }</tspan>
+       ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ escapeXml( fromInfo.nickname ) })</tspan>` : '' }
     </text>
     
     <!-- 状态文本 -->
     <text x="115" y="68" fill="#898a8b" font-size="16">
       <tspan fill="#898a8b">当前</tspan>
-      <tspan fill="#4cb4ff">${ this.escapeXml( statusText ) }</tspan>
+      <tspan fill="#4cb4ff">${ escapeXml( statusText ) }</tspan>
     </text>
   </g>
 </svg>`;
@@ -504,19 +505,19 @@ class SteamPollingService {
   <rect x="90" y="10" width="4" height="80" fill="#4CAF50"/>
   <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
     <text x="115" y="30" font-size="18" font-weight="bold">
-      <tspan fill="#cee8b1">${ this.escapeXml( change.newStatus.personaname ) }</tspan>
-      ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ this.escapeXml( fromInfo.nickname ) })</tspan>` : '' }
+      <tspan fill="#cee8b1">${ escapeXml( change.newStatus.personaname ) }</tspan>
+      ${ fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${ escapeXml( fromInfo.nickname ) })</tspan>` : '' }
     </text>
     <text x="115" y="59" fill="#898a8b" font-size="16">
-      ${ this.escapeXml( statusText ) }
+      ${ escapeXml( statusText ) }
     </text>
-    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ this.escapeXml( gameName ) }</text>
+    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ escapeXml( gameName ) }</text>
   </g>
 </svg>`;
 			const svgContent = hasGameName ? hasGameNameSvgContent : notHasGameNameSvgContent;
 			
 			// 使用 svg-convert 将 SVG 渲染为 PNG 并转换为 base64
-			const svgBase64 = await this.renderSvgToBase64( svgContent );
+			const svgBase64 = await renderSvgToBase64( svgContent );
 			
 			// 发送文本消息和PNG图片
 			if ( svgBase64 ) {
@@ -561,49 +562,6 @@ class SteamPollingService {
 			}
 		}
 	}
-	
-	/**
-	 * 使用 svg-convert 渲染 SVG 为 base64 图片
-	 */
-	private async renderSvgToBase64( svg: string ): Promise<string | null> {
-		try {
-			const port = 6099;
-			const host = `http://127.0.0.1:${ port }`;
-			const url = `${ host }/plugin/napcat-plugin-svg-render/api/svg/render`;
-			
-			pluginState.logger.debug( `调用 svg-convert 渲染，SVG 长度: ${ svg.length }` );
-			
-			const res = await fetch( url, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify( {
-					svg,
-					saveWebImage: true, // 保存网络图片到缓存，提高下次渲染速度
-				} ),
-				signal: AbortSignal.timeout( 30000 ),
-			} );
-			
-			const data = await res.json() as {
-				code: number;
-				data?: { imageBase64: string; format: string };
-				message?: string;
-			};
-			
-			if ( data.code === 0 && data.data?.imageBase64 ) {
-				pluginState.logger.debug( 'svg-convert 渲染成功' );
-				// 去除 data:image/png;base64, 前缀，只返回 base64 数据
-				const base64Data = data.data.imageBase64.replace( /^data:image\/png;base64,/, '' );
-				return base64Data;
-			}
-			pluginState.logger.warn( `svg-convert 渲染失败: ${ data.message || '未知错误' }` );
-			return null;
-		}
-		catch ( e ) {
-			pluginState.logger.error( `svg-convert 渲染请求失败: ${ e }` );
-			return null;
-		}
-	}
-	
 	
 	/**
 	 * 获取状态文本
@@ -675,19 +633,6 @@ class SteamPollingService {
 		}
 		
 		return totalWidth;
-	}
-	
-	/**
-	 * 转义 XML 特殊字符
-	 */
-	private escapeXml( text: string ): string {
-		if ( !text ) return '';
-		return text
-			.replace( /&/g, '&amp;' )
-			.replace( /</g, '&lt;' )
-			.replace( />/g, '&gt;' )
-			.replace( /"/g, '&quot;' )
-			.replace( /'/g, '&apos;' );
 	}
 	
 	/**
