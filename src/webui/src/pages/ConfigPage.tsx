@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { noAuthFetch } from '../utils/api'
+import { noAuthFetch, exportData, importData } from '../utils/api'
 import { showToast } from '../hooks/useToast'
 import type { PluginConfig } from '../types'
-import { IconTerminal, IconSteam, IconX, IconPlus } from '../components/icons'
+import { IconTerminal, IconSteam, IconX, IconPlus, IconDownload, IconUpload, IconDatabase, IconAlertTriangle } from '../components/icons'
 
 export default function ConfigPage() {
     const [config, setConfig] = useState<PluginConfig | null>(null)
     const [saving, setSaving] = useState(false)
+    const [importing, setImporting] = useState(false)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [showImportConfirm, setShowImportConfirm] = useState(false)
 
     const fetchConfig = useCallback(async () => {
         try {
@@ -41,6 +44,57 @@ export default function ConfigPage() {
         setConfig(updated)
         saveConfig({ [key]: value })
     }
+
+    const handleExport = useCallback(async () => {
+        try {
+            await exportData()
+            showToast('数据导出成功', 'success')
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : '导出失败', 'error')
+        }
+    }, [])
+
+    const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.name.endsWith('.zip')) {
+            showToast('请选择 .zip 格式的文件', 'error')
+            return
+        }
+
+        setSelectedFile(file)
+        setShowImportConfirm(true)
+    }, [])
+
+    const handleImport = useCallback(async () => {
+        if (!selectedFile) return
+
+        setImporting(true)
+        try {
+            const result = await importData(selectedFile)
+            if (result.code === 0) {
+                showToast(`导入成功，共 ${result.data?.importedFiles.length || 0} 个文件`, 'success')
+                setShowImportConfirm(false)
+                setSelectedFile(null)
+                // 延迟刷新页面以加载新数据
+                setTimeout(() => {
+                    window.location.reload()
+                }, 2000)
+            } else {
+                showToast(result.message || '导入失败', 'error')
+            }
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : '导入失败', 'error')
+        } finally {
+            setImporting(false)
+        }
+    }, [selectedFile])
+
+    const cancelImport = useCallback(() => {
+        setShowImportConfirm(false)
+        setSelectedFile(null)
+    }, [])
 
     if (!config) {
         return (
@@ -138,6 +192,89 @@ export default function ConfigPage() {
                 <div className="saving-indicator fixed bottom-4 right-4 bg-primary text-white text-xs px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
                     <div className="loading-spinner !w-3 !h-3 !border-[1.5px]" />
                     保存中...
+                </div>
+            )}
+
+            {/* 数据管理 */}
+            <div className="card p-5 hover-lift">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-5">
+                    <IconDatabase size={16} className="text-gray-400" />
+                    数据管理
+                </h3>
+                <div className="space-y-5">
+                    {/* 导出数据 */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">导出数据</div>
+                            <div className="text-xs text-gray-400 mt-0.5">导出所有数据（绑定、缓存、游戏名、配置）为 zip 文件</div>
+                        </div>
+                        <button
+                            className="btn btn-primary flex items-center gap-2"
+                            onClick={handleExport}
+                        >
+                            <IconDownload size={16} />
+                            导出数据
+                        </button>
+                    </div>
+
+                    {/* 导入数据 */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <div>
+                                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">导入数据</div>
+                                <div className="text-xs text-gray-400 mt-0.5">从 zip 文件恢复数据，将完全覆盖现有数据</div>
+                            </div>
+                            <label className="btn btn-secondary flex items-center gap-2 cursor-pointer">
+                                <IconUpload size={16} />
+                                选择文件
+                                <input
+                                    type="file"
+                                    accept=".zip"
+                                    className="hidden"
+                                    onChange={handleFileSelect}
+                                />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 导入确认对话框 */}
+            {showImportConfirm && selectedFile && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                        <div className="flex items-center gap-3 text-amber-500 mb-4">
+                            <IconAlertTriangle size={24} />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">确认导入数据</h3>
+                        </div>
+                        <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-6">
+                            <p>您即将导入以下文件：</p>
+                            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                                <div className="font-medium">{selectedFile.name}</div>
+                                <div className="text-xs text-gray-400">{(selectedFile.size / 1024).toFixed(1)} KB</div>
+                            </div>
+                            <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                ⚠️ 警告：导入将完全覆盖现有数据，此操作不可撤销！
+                            </p>
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={cancelImport}
+                                disabled={importing}
+                            >
+                                取消
+                            </button>
+                            <button
+                                className="btn btn-danger flex items-center gap-2"
+                                onClick={handleImport}
+                                disabled={importing}
+                            >
+                                {importing && <div className="loading-spinner !w-3 !h-3 !border-[1.5px]" />}
+                                确认导入
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
