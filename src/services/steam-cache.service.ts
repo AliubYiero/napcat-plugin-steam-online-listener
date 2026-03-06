@@ -49,18 +49,29 @@ export type StatusChanges = StatusChange[];
 
 class SteamCacheService {
     private readonly cacheFileName = 'steam-status-cache.json';
+    private initialized = false;
+    private cache: SteamStatusCache = {};
+
+    /**
+     * 确保服务已初始化（延迟加载缓存）
+     */
+    private ensureInitialized(): void {
+        if (this.initialized) return;
+        this.cache = this.loadCache();
+        this.initialized = true;
+    }
 
     /**
      * 加载 Steam 状态缓存
      */
-    loadCache(): SteamStatusCache {
+    private loadCache(): SteamStatusCache {
         return pluginState.loadDataFile<SteamStatusCache>(this.cacheFileName, {});
     }
 
     /**
      * 保存 Steam 状态缓存
      */
-    saveCache(cache: SteamStatusCache): void {
+    private saveCache(cache: SteamStatusCache): void {
         pluginState.saveDataFile<SteamStatusCache>(this.cacheFileName, cache);
     }
 
@@ -68,18 +79,18 @@ class SteamCacheService {
      * 更新缓存中的状态
      */
     updateCacheItem(steamId: string, playerSummary: SteamPlayerSummary): void {
-        const cache = this.loadCache();
+        this.ensureInitialized();
         const now = Date.now();
-        
+
         // 获取旧缓存数据
-        const oldCache = cache[steamId];
-        
+        const oldCache = this.cache[steamId];
+
         // 判断是否需要更新 gameStartTime
         // 1. 如果之前有游戏，现在还是同一个游戏，保持 gameStartTime 不变
         // 2. 如果之前有游戏，现在换了游戏，更新 gameStartTime
         // 3. 如果之前没有游戏，现在有游戏，设置 gameStartTime
         let gameStartTime: number | undefined;
-        
+
         if (playerSummary.gameextrainfo) {
             // 当前正在玩游戏
             if (oldCache?.gameextrainfo === playerSummary.gameextrainfo) {
@@ -94,7 +105,7 @@ class SteamCacheService {
             gameStartTime = undefined;
         }
 
-        cache[steamId] = {
+        this.cache[steamId] = {
             steamId,
             personaname: playerSummary.personaname,
             personastate: playerSummary.personastate,
@@ -103,23 +114,23 @@ class SteamCacheService {
             lastUpdateTime: now,
             gameStartTime,
         };
-        this.saveCache(cache);
+        this.saveCache(this.cache);
     }
 
     /**
      * 批量更新缓存
      */
     updateCacheBatch(playerSummaries: SteamPlayerSummary[]): void {
-        const cache = this.loadCache();
+        this.ensureInitialized();
         const now = Date.now();
 
         for (const player of playerSummaries) {
             // 获取旧缓存数据
-            const oldCache = cache[player.steamid];
-            
+            const oldCache = this.cache[player.steamid];
+
             // 判断是否需要更新 gameStartTime
             let gameStartTime: number | undefined;
-            
+
             if (player.gameextrainfo) {
                 // 当前正在玩游戏
                 if (oldCache?.gameextrainfo === player.gameextrainfo) {
@@ -133,8 +144,8 @@ class SteamCacheService {
                 // 当前没有玩游戏，不设置 gameStartTime
                 gameStartTime = undefined;
             }
-            
-            cache[player.steamid] = {
+
+            this.cache[player.steamid] = {
                 steamId: player.steamid,
                 personaname: player.personaname,
                 personastate: player.personastate,
@@ -145,7 +156,7 @@ class SteamCacheService {
             };
         }
 
-        this.saveCache(cache);
+        this.saveCache(this.cache);
     }
 
     /**
@@ -154,11 +165,11 @@ class SteamCacheService {
      * @returns 状态变化检测结果数组
      */
     detectStatusChanges(currentSummaries: SteamPlayerSummary[]): StatusChanges {
-        const cache = this.loadCache();
+        this.ensureInitialized();
         const changes: StatusChanges = [];
 
         for (const current of currentSummaries) {
-            const cached = cache[current.steamid] || null;
+            const cached = this.cache[current.steamid] || null;
             const change = this.analyzeStatusChange(cached, current);
 
             if (change) {
@@ -359,7 +370,18 @@ class SteamCacheService {
      * 清空缓存
      */
     clearCache(): void {
-        this.saveCache({});
+        this.ensureInitialized();
+        this.cache = {};
+        this.saveCache(this.cache);
+    }
+
+    /**
+     * 获取当前缓存（用于时间线服务的午夜快照）
+     */
+    getCurrentCache(): SteamStatusCache {
+        this.ensureInitialized();
+        // 深拷贝保护内部状态
+        return JSON.parse(JSON.stringify(this.cache));
     }
 }
 
