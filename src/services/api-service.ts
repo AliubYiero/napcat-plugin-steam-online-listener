@@ -31,6 +31,9 @@ import {
 } from '../handlers/steam-utils';
 import type { FromInfo } from '../types';
 import { gameNameService } from './game-name.service';
+import AdmZip from 'adm-zip';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * 注册 API 路由
@@ -394,7 +397,51 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
         }
     });
 
-    // TODO: 在这里添加你的自定义 API 路由
+    // ==================== 数据导入/导出（无鉴权）====================
+
+    /** 导出数据 - 将所有 JSON 文件打包为 zip */
+    router.getNoAuth('/data-export', (_req, res) => {
+        try {
+            const dataPath = pluginState.ctx.dataPath;
+
+            // 检查数据目录是否存在
+            if (!fs.existsSync(dataPath)) {
+                return res.status(500).json({ code: -1, message: '数据目录不存在' });
+            }
+
+            // 读取目录下的所有 json 文件
+            const files = fs.readdirSync(dataPath);
+            const jsonFiles = files.filter(file => file.endsWith('.json'));
+
+            if (jsonFiles.length === 0) {
+                return res.status(500).json({ code: -1, message: '没有可导出的数据文件' });
+            }
+
+            // 创建 zip 文件
+            const zip = new AdmZip();
+
+            for (const file of jsonFiles) {
+                const filePath = path.join(dataPath, file);
+                const content = fs.readFileSync(filePath);
+                zip.addFile(file, content);
+            }
+
+            // 生成时间戳文件名
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const zipFileName = `steam-plugin-data-export-${timestamp}.zip`;
+
+            // 发送 zip 文件
+            const zipBuffer = zip.toBuffer();
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+            res.send(zipBuffer);
+
+            ctx.logger.info(`数据导出完成: ${zipFileName}, 包含 ${jsonFiles.length} 个文件`);
+        } catch (error) {
+            ctx.logger.error('数据导出失败:', error);
+            res.status(500).json({ code: -1, message: `导出失败: ${error}` });
+        }
+    });
 
     ctx.logger.debug('API 路由注册完成');
 }
