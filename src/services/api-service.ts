@@ -446,8 +446,9 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
     /** 导入数据 - 从 zip 文件恢复数据 */
     router.postNoAuth('/data-import', async (req, res) => {
         try {
-            // 检查是否有文件上传
-            if (!req.body || !Buffer.isBuffer(req.body)) {
+            // 检查是否有文件上传（Base64 编码）
+            const body = req.body as { data?: string } | undefined;
+            if (!body?.data || typeof body.data !== 'string') {
                 return res.status(400).json({ code: -1, message: '请上传文件' });
             }
 
@@ -458,10 +459,13 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 fs.mkdirSync(dataPath, { recursive: true });
             }
 
+            // Base64 解码为 Buffer
+            const buffer = Buffer.from(body.data, 'base64');
+
             // 读取 zip 文件
             let zip: AdmZip;
             try {
-                zip = new AdmZip(req.body);
+                zip = new AdmZip(buffer);
             } catch (error) {
                 return res.status(400).json({ code: -1, message: '无效的压缩包文件' });
             }

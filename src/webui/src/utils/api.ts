@@ -161,13 +161,15 @@ export async function exportData(): Promise<void> {
  * 导入数据 - 上传 zip 文件
  */
 export async function importData(file: File): Promise<ApiResponse<{ importedFiles: string[] }>> {
-    const formData = new FormData()
-    formData.append('file', file)
+    // 读取文件为 ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer()
+    // 转为 Base64 字符串
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
 
     const response = await fetch(buildUrl(API_BASE_NO_AUTH, '/data-import'), {
         method: 'POST',
-        body: formData,
-        // 不要设置 Content-Type，让浏览器自动设置 multipart/form-data
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: base64 }),
     })
 
     if (!response.ok) {
