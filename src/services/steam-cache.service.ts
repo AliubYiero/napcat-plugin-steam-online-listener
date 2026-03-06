@@ -39,7 +39,7 @@ export interface StatusChange {
     /** 新状态 */
     newStatus: SteamPlayerSummary;
     /** 变化类型 */
-    changeType: 'online' | 'offline' | 'ingame' | 'outgame' | 'inAfk' | 'outAfk' | 'quitGame' | 'other';
+    changeType: 'online' | 'offline' | 'ingame' | 'outgame' | 'inAfk' | 'outAfk' | 'quitGame' | 'switchGame' | 'other';
 }
 
 /** 状态变化检测结果数组 */
@@ -318,13 +318,36 @@ class SteamCacheService {
                 };
             }
         }
-        // 如果都在游戏中，但游戏不同
+        // 如果都在游戏中，但游戏不同（切换游戏）
         else if (oldWasInGame && newIsInGame && oldStatus.gameextrainfo !== newStatus.gameextrainfo) {
+            // 计算旧游戏的游玩时长
+            if (oldStatus.gameStartTime) {
+                const playTimeMs = Date.now() - oldStatus.gameStartTime;
+                const playTimeMinutes = Math.floor(playTimeMs / 60000);
+                const playTimeHours = Math.floor(playTimeMinutes / 60);
+                const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
+
+                let playTimeStr = '';
+                if (playTimeHours > 0) {
+                    playTimeStr += `${playTimeHours}小时`;
+                }
+                if (playTimeMinutes > 0) {
+                    playTimeStr += `${playTimeMinutes % 60}分钟`;
+                }
+                if (playTimeSeconds > 0 || playTimeStr === '') {
+                    playTimeStr += `${playTimeSeconds}秒`;
+                }
+
+                pluginState.logger.info(
+                    `玩家 ${newStatus.personaname} (${newStatus.steamid}) 切换游戏，结束了 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`
+                );
+            }
+
             return {
                 steamId: newStatus.steamid,
                 oldStatus,
                 newStatus,
-                changeType: 'ingame',
+                changeType: 'switchGame',
             };
         }
 

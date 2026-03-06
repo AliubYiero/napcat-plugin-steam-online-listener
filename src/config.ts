@@ -20,7 +20,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
 	pollingIntervalSeconds: 60,
 	steamApiKey: '',
 	adminUsers: [], // 默认管理员用户
-	notifyStatusTypes: ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'],
+	notifyStatusTypes: ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame', 'switchGame'],
 };
 
 /**
@@ -44,7 +44,7 @@ export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchem
 		// 跳转到管理页面按钮
 		ctx.NapCatConfig.html( `
             <div style="margin-bottom: 16px;">
-                <a href="${webuiUrl}" 
+                <a href="${webuiUrl}"
                    target="_blank"
                    style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #FB7299; color: white; border-radius: 8px; text-decoration: none; font-weight: 500; transition: opacity 0.2s;"
                    onmouseover="this.style.opacity='0.9'"
@@ -97,8 +97,9 @@ export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchem
 				{ label: '开始挂机', value: 'inAfk' },
 				{ label: '结束挂机', value: 'outAfk' },
 				{ label: '游戏下线', value: 'quitGame' },
+				{ label: '切换游戏', value: 'switchgame' },
 			],
-			['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'],
+			['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame', 'switchGame'],
 			'选择要推送的 Steam 状态变化类型，默认全部推送'
 		),
 	);

@@ -306,39 +306,80 @@ class SteamPollingService {
 				}
 				break;
 			}
-			case 'quitGame': {
-				let gameName = change.oldStatus?.gameextrainfo || '';
-				// 尝试获取格式化后的游戏名称
-				if ( change.oldStatus?.gameid && gameName ) {
-					gameName = await gameNameService.getFormattedGameName(
-						change.oldStatus.gameid,
-						gameName,
-					);
-				}
-				message += ` 结束游玩并下线 ${ gameName }`;
-				// 如果有游戏开始时间，计算并显示游玩时长
-				if ( change.oldStatus?.gameStartTime ) {
-					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
-					const playTimeHours = Math.floor( playTimeMinutes / 60 );
-					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
-					
-					let playTimeStr = '';
-					if ( playTimeHours > 0 ) {
-						playTimeStr += `${ playTimeHours }小时`;
-					}
-					if ( playTimeMinutes > 0 ) {
-						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
-					}
-					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
-						playTimeStr += `${ playTimeSeconds }秒`;
-					}
-					
-					message += `（游玩时长：${ playTimeStr }）`;
-				}
-				break;
-			}
-			default:
+						case 'quitGame': {
+							let gameName = change.oldStatus?.gameextrainfo || '';
+							// 尝试获取格式化后的游戏名称
+							if (change.oldStatus?.gameid && gameName) {
+								gameName = await gameNameService.getFormattedGameName(
+									change.oldStatus.gameid,
+									gameName,
+								);
+							}
+							message += ` 结束游玩并下线 ${gameName}`;
+							// 如果有游戏开始时间，计算并显示游玩时长
+							if (change.oldStatus?.gameStartTime) {
+								const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+								const playTimeMinutes = Math.floor(playTimeMs / 60000);
+								const playTimeHours = Math.floor(playTimeMinutes / 60);
+								const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
+								
+								let playTimeStr = '';
+								if (playTimeHours > 0) {
+									playTimeStr += `${playTimeHours}小时`;
+								}
+								if (playTimeMinutes > 0) {
+									playTimeStr += `${playTimeMinutes % 60}分钟`;
+								}
+								if (playTimeSeconds > 0 || playTimeStr === '') {
+									playTimeStr += `${playTimeSeconds}秒`;
+								}
+								
+								message += `（游玩时长：${playTimeStr}）`;
+							}
+							break;
+						}
+						case 'switchGame': {
+							// 获取旧游戏名称
+							let oldGameName = change.oldStatus?.gameextrainfo || '';
+							if (change.oldStatus?.gameid && oldGameName) {
+								oldGameName = await gameNameService.getFormattedGameName(
+									change.oldStatus.gameid,
+									oldGameName,
+								);
+							}
+							// 获取新游戏名称
+							let newGameName = '';
+							if (change.newStatus.gameid && change.newStatus.gameextrainfo) {
+								newGameName = await gameNameService.getFormattedGameName(
+									change.newStatus.gameid,
+									change.newStatus.gameextrainfo,
+								);
+							}
+							message += ` 结束游玩 ${oldGameName}`;
+							// 如果有游戏开始时间，计算并显示旧游戏的游玩时长
+							if (change.oldStatus?.gameStartTime) {
+								const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+								const playTimeMinutes = Math.floor(playTimeMs / 60000);
+								const playTimeHours = Math.floor(playTimeMinutes / 60);
+								const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
+								
+								let playTimeStr = '';
+								if (playTimeHours > 0) {
+									playTimeStr += `${playTimeHours}小时`;
+								}
+								if (playTimeMinutes > 0) {
+									playTimeStr += `${playTimeMinutes % 60}分钟`;
+								}
+								if (playTimeSeconds > 0 || playTimeStr === '') {
+									playTimeStr += `${playTimeSeconds}秒`;
+								}
+								
+								message += `（游玩时长：${playTimeStr}）`;
+							}
+							message += `，开始游玩 ${newGameName}`;
+							break;
+						}
+						default:
 				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
@@ -361,7 +402,7 @@ class SteamPollingService {
 		try {
 			// 构建SVG内容
 			const statusText = this.getStatusText( change );
-			// 对于退出游戏状态，使用旧状态中的游戏名称；其他状态使用新状态
+			// 对于退出游戏状态，使用旧状态中的游戏名称；其他状态（包括切换游戏）使用新状态
 			let gameName = '';
 			if ( ( change.changeType === 'outgame' || change.changeType === 'quitGame' )
 				&& ( change.oldStatus && change.oldStatus.gameextrainfo && change.oldStatus.gameid ) ) {
@@ -371,6 +412,7 @@ class SteamPollingService {
 				);
 			}
 			else if ( change.newStatus.gameid && change.newStatus.gameextrainfo ) {
+				// switchGame 也会使用此分支，显示新游戏名称
 				gameName = await gameNameService.getFormattedGameName(
 					change.newStatus.gameid,
 					change.newStatus.gameextrainfo,
@@ -561,6 +603,8 @@ class SteamPollingService {
 				return '结束挂机';
 			case 'quitGame':
 				return '结束游玩并下线';
+			case 'switchGame':
+				return '切换游戏';
 			default:
 				return steamService.formatPlayerState( change.newStatus.personastate );
 		}
