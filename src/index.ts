@@ -32,6 +32,7 @@ import { pluginState } from './core/state';
 import { handleMessage } from './handlers/message-handler';
 import { registerApiRoutes } from './services/api-service';
 import { steamPollingService } from './services/steam-polling.service';
+import { timelineService } from './services/timeline.service';
 import type { PluginConfig } from './types';
 
 // ==================== 配置 UI Schema ====================
