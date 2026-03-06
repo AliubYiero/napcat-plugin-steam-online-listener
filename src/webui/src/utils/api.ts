@@ -119,3 +119,61 @@ export async function deleteGameName(appid: string) {
         method: 'DELETE',
     })
 }
+
+// ==================== 数据导入/导出 API ====================
+
+/**
+ * 导出数据 - 触发下载 zip 文件
+ */
+export async function exportData(): Promise<void> {
+    const response = await fetch(buildUrl(API_BASE_NO_AUTH, '/data-export'), {
+        method: 'GET',
+    })
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: '导出失败' }))
+        throw new Error(errorData.message || `导出失败: HTTP ${response.status}`)
+    }
+
+    // 获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let filename = 'steam-plugin-data-export.zip'
+    if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/)
+        if (match) {
+            filename = match[1]
+        }
+    }
+
+    // 下载文件
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+}
+
+/**
+ * 导入数据 - 上传 zip 文件
+ */
+export async function importData(file: File): Promise<ApiResponse<{ importedFiles: string[] }>> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(buildUrl(API_BASE_NO_AUTH, '/data-import'), {
+        method: 'POST',
+        body: formData,
+        // 不要设置 Content-Type，让浏览器自动设置 multipart/form-data
+    })
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: '导入失败' }))
+        throw new Error(errorData.message || `导入失败: HTTP ${response.status}`)
+    }
+
+    return response.json()
+}
