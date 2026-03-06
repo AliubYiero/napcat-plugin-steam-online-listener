@@ -43,17 +43,20 @@ class GameNameService {
 
     /**
      * 获取游戏名称对象（懒加载）
-     * 如果游戏不存在于表中，会创建新记录
+     * 如果游戏不存在于表中且提供了enName，会创建新记录
      * 如果中文名不存在，会异步获取
+     * @param appid Steam游戏ID
+     * @param enName 英文名（可选，不传时只查询不创建）
+     * @returns 游戏名称对象，不存在时返回null
      */
-    private async getGameName(appid: string, enName: string): Promise<GameName> {
+    private async getGameName(appid: string, enName?: string): Promise<GameName | null> {
         // 确保已初始化（双重检查，防止直接调用）
         this.ensureInitialized();
 
         // 参数校验
-        if (!appid || !enName) {
-            pluginState.logger.warn('[GameNameService] appid或enName为空');
-            return { en: enName || '未知游戏' };
+        if (!appid) {
+            pluginState.logger.warn('[GameNameService] appid为空');
+            return null;
         }
 
         // 检查是否已存在
@@ -61,17 +64,22 @@ class GameNameService {
             const gameName = this.gameNames![appid];
 
             // 如果英文名有更新，同步更新
-            if (gameName.en !== enName) {
+            if (enName && gameName.en !== enName) {
                 gameName.en = enName;
                 this.saveGameNames();
             }
 
             // 异步获取中文名（如果不存在）
             if (!gameName.zh && !this.fetchingSet.has(appid)) {
-                this.fetchChineseName(appid, enName);
+                this.fetchChineseName(appid, gameName.en);
             }
 
             return gameName;
+        }
+
+        // 如果不存在且没有提供 enName，返回 null
+        if (!enName) {
+            return null;
         }
 
         // 创建新记录
