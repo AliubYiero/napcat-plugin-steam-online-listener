@@ -5,7 +5,7 @@
 
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
-import { steamReportService } from '../services/steam-report.service.js';
+import { steamReportService } from '../services/steam-report.service';
 import { pluginState } from '../core/state';
 import { sendReply } from './utils';
 
@@ -66,13 +66,15 @@ export async function handleSteamReport(
  */
 function calculateReportRange(day: string): { dateStr: string; endTime: number; dateLabel: string } {
     const now = new Date();
-    
-    // 获取今日日期字符串（中国时区）
-    const todayStr = now.toLocaleDateString('zh-CN', { 
-        year: 'numeric', 
-        month: 'numeric', 
-        day: 'numeric' 
-    });
+
+    // 获取中国时区的当前日期 (UTC+8)
+    const chinaTime = new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
+    const year = chinaTime.getFullYear();
+    const month = chinaTime.getMonth();
+    const date = chinaTime.getDate();
+
+    // 今日日期字符串
+    const todayStr = `${year}-${month + 1}-${date}`;
 
     if (day === 'today') {
         // 今日：结束时间为当前
@@ -82,17 +84,13 @@ function calculateReportRange(day: string): { dateStr: string; endTime: number; 
             dateLabel: '今日',
         };
     } else {
-        // 昨日：计算昨日日期，结束时间为今日 0:00
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('zh-CN', { 
-            year: 'numeric', 
-            month: 'numeric', 
-            day: 'numeric' 
-        });
+        // 昨日：计算昨日日期
+        const yesterdayDate = new Date(chinaTime);
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = `${yesterdayDate.getFullYear()}-${yesterdayDate.getMonth() + 1}-${yesterdayDate.getDate()}`;
 
         // 今日 0:00 时间戳 = 昨日 24:00
-        const startOfToday = new Date(todayStr).getTime();
+        const startOfToday = new Date(year, month, date).getTime();
 
         return {
             dateStr: yesterdayStr,
