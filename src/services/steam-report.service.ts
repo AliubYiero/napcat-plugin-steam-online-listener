@@ -403,7 +403,7 @@ class SteamReportService {
 
         // 对每个来源的用户按游戏时长降序排序
         for (const users of sourceMap.values()) {
-            users.sort((a, b) => b.playedDuration - a.playedDuration);
+            users.sort((a, b) => b.playedDuration - a.playedDuration || b.onlineDuration - a.onlineDuration);
         }
 
         return sourceMap;
@@ -535,6 +535,9 @@ class SteamReportService {
                 }
                 return user;
             });
+            
+            // 对每个来源的用户按游戏时长降序排序
+            usersWithNickname.sort((a, b) => b.playedDuration - a.playedDuration ||  b.onlineDuration - a.onlineDuration);
 
             // 步骤6: 生成并推送报告
             const parts = dateStr.split('-').map(Number);
