@@ -321,27 +321,27 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 return res.status(400).json({ code: -1, message: 'type 参数错误' });
             }
 
-            const bindItem = findSteamBindItem(steamId);
-            if (!bindItem) {
+            const allBinds = loadSteamBindData();
+            const bindIndex = allBinds.findIndex(b => b.steamId === steamId);
+            if (bindIndex === -1) {
                 return res.json({ code: -1, message: '绑定不存在' });
             }
 
+            const bindItem = allBinds[bindIndex];
+
             // 移除特定来源
-            bindItem.from = bindItem.from?.filter(
+            const filteredFrom = bindItem.from?.filter(
                 f => !(f.id === fromId && f.type === type)
             );
 
-            // 如果没有来源了，删除整个绑定
-            if (!bindItem.from || bindItem.from.length === 0) {
-                const allBinds = loadSteamBindData();
-                const index = allBinds.findIndex(b => b.steamId === steamId);
-                if (index !== -1) {
-                    allBinds.splice(index, 1);
-                    saveSteamBindData(allBinds);
-                }
+            // 如果没有来源了，删除整个绑定；否则更新 from 数组
+            if (!filteredFrom || filteredFrom.length === 0) {
+                allBinds.splice(bindIndex, 1);
             } else {
-                updateSteamBindItem(bindItem);
+                bindItem.from = filteredFrom;
             }
+
+            saveSteamBindData(allBinds);
 
             ctx.logger.info(`Steam 绑定已删除: ${steamId} from ${type}:${fromId}`);
             res.json({ code: 0, message: '删除成功' });
