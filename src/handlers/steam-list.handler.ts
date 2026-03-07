@@ -6,7 +6,7 @@
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { sendReply, getCooldownRemaining, setCooldown } from './utils';
-import { findSteamBindItemsByFrom } from './steam-utils';
+import { steamBindService } from '../services/steam-bind.service';
 import { pluginState } from '../core/state';
 import { steamCacheService } from '../services/steam-cache.service';
 import { steamService } from '../services/steam.service';
@@ -33,7 +33,7 @@ export async function handleSteamList(ctx: NapCatPluginContext, event: OB11Messa
         const currentFromType: 'private' | 'group' = event.message_type === 'group' ? 'group' : 'private';
 
         // 只获取当前来源的绑定数据
-        const bindData = findSteamBindItemsByFrom(currentFromId, currentFromType);
+        const bindData = steamBindService.findByFrom(currentFromId, currentFromType);
 
         if (bindData.length === 0) {
             await sendReply(ctx, event, '当前没有绑定的 Steam 用户数据');

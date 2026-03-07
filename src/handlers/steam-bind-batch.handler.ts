@@ -8,7 +8,7 @@
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { sendReply, getCooldownRemaining, setCooldown } from './utils';
-import { findSteamBindItem, updateSteamBindItem } from './steam-utils';
+import { steamBindService } from '../services/steam-bind.service';
 import type { SteamBindItem } from '../types';
 import { pluginState } from '../core/state';
 import { steamService } from '../services/steam.service';
@@ -129,7 +129,7 @@ export async function handleSteamBindBatch(
 			}
 
 			// 查找现有的绑定项
-			let bindItem = findSteamBindItem(steamId);
+			let bindItem = steamBindService.findBySteamId(steamId);
 			if (!bindItem) {
 				// 如果不存在，创建新的绑定项
 				bindItem = {
@@ -178,7 +178,7 @@ export async function handleSteamBindBatch(
 			}
 
 			// 更新绑定数据
-			updateSteamBindItem(bindItem);
+			steamBindService.update(bindItem);
 
 			results.push({
 				steamId,

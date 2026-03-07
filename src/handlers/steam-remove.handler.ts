@@ -6,12 +6,7 @@
 import type { OB11Message } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { sendReply, getCooldownRemaining, setCooldown } from './utils';
-import { 
-    findSteamBindItem, 
-    updateSteamBindItem,
-    loadSteamBindData, 
-    saveSteamBindData 
-} from './steam-utils';
+import { steamBindService } from '../services/steam-bind.service';
 import { pluginState } from '../core/state';
 
 /**
@@ -48,7 +43,7 @@ export async function handleSteamRemove(ctx: NapCatPluginContext, event: OB11Mes
         const currentFromType: 'private' | 'group' = event.message_type === 'group' ? 'group' : 'private';
 
         // 查找绑定项
-        const bindItem = findSteamBindItem(steamId);
+        const bindItem = steamBindService.findBySteamId(steamId);
         if (!bindItem) {
             await sendReply(ctx, event, `未找到 Steam ID ${steamId} 的绑定数据`);
             return;
@@ -64,7 +59,7 @@ export async function handleSteamRemove(ctx: NapCatPluginContext, event: OB11Mes
         }
 
         // 从绑定项中移除当前来源的记录
-        const data = loadSteamBindData();
+        const data = steamBindService.getAll();
         const updatedData = data.map(item => {
             if (item.steamId === steamId) {
                 if (item.from) {
@@ -87,7 +82,7 @@ export async function handleSteamRemove(ctx: NapCatPluginContext, event: OB11Mes
             return item;
         }).filter(item => item !== null);
 
-        saveSteamBindData(updatedData);
+        steamBindService.save(updatedData);
 
         await sendReply(ctx, event, `已成功移除 Steam ID ${steamId} 的绑定数据`);
         pluginState.incrementProcessed();

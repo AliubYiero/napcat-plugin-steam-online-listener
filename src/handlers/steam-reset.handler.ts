@@ -8,7 +8,7 @@ import type {
 	NapCatPluginContext,
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { sendReply, getCooldownRemaining, setCooldown } from './utils';
-import { removeSteamBindItemFrom } from './steam-utils';
+import { steamBindService } from '../services/steam-bind.service';
 import { pluginState } from '../core/state';
 
 /**
@@ -33,7 +33,7 @@ export async function handleSteamReset( ctx: NapCatPluginContext, event: OB11Mes
 		const currentFromType: 'private' | 'group' = event.message_type;
 		
 		// 从绑定数据中移除当前来源的数据
-		removeSteamBindItemFrom( currentFromId, currentFromType );
+		steamBindService.removeFrom( currentFromId, currentFromType );
 		
 		await sendReply( ctx, event, `已清空当前${ currentFromType === 'private' ? '用户' : '群组' }的steam绑定数据` );
 		pluginState.incrementProcessed();

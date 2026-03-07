@@ -23,12 +23,7 @@ import type {
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { pluginState } from '../core/state';
 import { steamService } from './steam.service';
-import {
-    loadSteamBindData,
-    saveSteamBindData,
-    findSteamBindItem,
-    updateSteamBindItem
-} from '../handlers/steam-utils';
+import { steamBindService } from './steam-bind.service';
 import type { FromInfo } from '../types';
 import { gameNameService } from './game-name.service';
 import AdmZip from 'adm-zip';
@@ -232,7 +227,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
     router.getNoAuth('/steam-binds', (req, res) => {
         try {
             const { fromId, type } = req.query as { fromId?: string; type?: string };
-            let binds = loadSteamBindData();
+            let binds = steamBindService.getAll();
 
             // 如果指定了来源，进行筛选
             if (fromId && type) {
@@ -270,7 +265,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
             }
 
             // 创建或更新绑定
-            let bindItem = findSteamBindItem(String(steamId));
+            let bindItem = steamBindService.findBySteamId(String(steamId));
             if (!bindItem) {
                 bindItem = {
                     steamId: String(steamId),
@@ -296,7 +291,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 bindItem.from!.push(newFromInfo);
             }
 
-            updateSteamBindItem(bindItem);
+            steamBindService.update(bindItem);
 
             ctx.logger.info(`Steam 绑定已添加/更新: ${steamId}`);
             res.json({ code: 0, message: '绑定成功' });
@@ -321,7 +316,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 return res.status(400).json({ code: -1, message: 'type 参数错误' });
             }
 
-            const allBinds = loadSteamBindData();
+            const allBinds = steamBindService.getAll();
             const bindIndex = allBinds.findIndex(b => b.steamId === steamId);
             if (bindIndex === -1) {
                 return res.json({ code: -1, message: '绑定不存在' });
@@ -341,7 +336,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 bindItem.from = filteredFrom;
             }
 
-            saveSteamBindData(allBinds);
+            steamBindService.save(allBinds);
 
             ctx.logger.info(`Steam 绑定已删除: ${steamId} from ${type}:${fromId}`);
             res.json({ code: 0, message: '删除成功' });

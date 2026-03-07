@@ -11,6 +11,7 @@ import {
 	type StatusChanges,
 	StatusChange,
 } from './steam-cache.service';
+import { steamBindService } from './steam-bind.service';
 import { timelineService } from './timeline.service';
 import { steamReportService } from './steam-report.service';
 import { renderSvgToBase64, escapeXml } from '../utils/svg-render';
@@ -178,8 +179,7 @@ class SteamPollingService {
 	 * 获取所有 Steam 绑定项
 	 */
 	private getAllSteamBindItems(): SteamBindItem[] {
-		// 通过读取数据文件获取所有绑定项
-		return pluginState.loadDataFile<SteamBindItem[]>( 'steam-bind-data.json', [] );
+		return steamBindService.getAll();
 	}
 	
 	/**
