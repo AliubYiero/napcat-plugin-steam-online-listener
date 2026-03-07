@@ -1,7 +1,7 @@
 {
   "name": "napcat-plugin-steam-online-listener",
   "plugin": "Steam 状态监听",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "main": "index.mjs",
   "description": "监听指定 steam 的用户的登录/游戏状态",
