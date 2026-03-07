@@ -23,18 +23,15 @@ function isValidSteamId64(steamId: string): boolean {
 
 /**
  * 解析批量绑定参数
- * 从原始消息中解析出 steamId 和 nickname 的配对
+ * 从 args 数组中解析出 steamId 和 nickname 的配对
+ * @param args - 命令参数数组，args[0] 为 'bind-batch'，从 args[1] 开始是实际参数
  */
-function parseBatchArgs(rawMessage: string): Array<{ steamId: string; nickname: string }> {
-	// 移除指令前缀，获取参数部分
-	const prefix = '#steam-bind-batch';
-	const content = rawMessage.slice(rawMessage.indexOf(prefix) + prefix.length).trim();
-	
-	// 使用正则表达式匹配所有空白字符分割的令牌
-	const tokens = content.split(/\s+/).filter(token => token.length > 0);
-	
+function parseBatchArgs(args: string[]): Array<{ steamId: string; nickname: string }> {
+	// 跳过 args[0]（子命令 'bind-batch'），获取实际参数
+	const tokens = args.slice(1).filter(token => token.length > 0);
+
 	const pairs: Array<{ steamId: string; nickname: string }> = [];
-	
+
 	// 每两个令牌为一组（steamId + nickname）
 	for (let i = 0; i < tokens.length; i += 2) {
 		if (i + 1 < tokens.length) {
@@ -44,7 +41,7 @@ function parseBatchArgs(rawMessage: string): Array<{ steamId: string; nickname: 
 			});
 		}
 	}
-	
+
 	return pairs;
 }
 
@@ -58,7 +55,6 @@ export async function handleSteamBindBatch(
 ): Promise<void> {
 	const messageType = event.message_type;
 	const groupId = event.group_id;
-	const rawMessage = event.raw_message || '';
 
 	// 群消息检查 CD
 	if (messageType === 'group' && groupId) {
@@ -70,7 +66,7 @@ export async function handleSteamBindBatch(
 	}
 
 	// 解析批量绑定参数
-	const pairs = parseBatchArgs(rawMessage);
+	const pairs = parseBatchArgs(args);
 
 	if (pairs.length === 0) {
 		await sendReply(
