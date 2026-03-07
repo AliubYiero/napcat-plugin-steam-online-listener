@@ -15,6 +15,7 @@ import { steamBindService } from './steam-bind.service';
 import { timelineService } from './timeline.service';
 import { steamReportService } from './steam-report.service';
 import { renderSvgToBase64, escapeXml } from '../utils/svg-render';
+import { formatPlayTime } from '../utils/format';
 import {
 	sendGroupMessage,
 	sendPrivateMessage,
@@ -284,22 +285,7 @@ class SteamPollingService {
 				message += ` 结束游玩 ${ gameName }`;
 				// 如果有游戏开始时间，计算并显示游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
-					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
-					const playTimeHours = Math.floor( playTimeMinutes / 60 );
-					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
-					
-					let playTimeStr = '';
-					if ( playTimeHours > 0 ) {
-						playTimeStr += `${ playTimeHours }小时`;
-					}
-					if ( playTimeMinutes > 0 ) {
-						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
-					}
-					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
-						playTimeStr += `${ playTimeSeconds }秒`;
-					}
-					
+					const playTimeStr = formatPlayTime( change.oldStatus.gameStartTime );
 					message += `（游玩时长：${ playTimeStr }）`;
 				}
 				break;
@@ -345,22 +331,7 @@ class SteamPollingService {
 				message += ` 结束游玩并下线 ${ gameName }`;
 				// 如果有游戏开始时间，计算并显示游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
-					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
-					const playTimeHours = Math.floor( playTimeMinutes / 60 );
-					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
-					
-					let playTimeStr = '';
-					if ( playTimeHours > 0 ) {
-						playTimeStr += `${ playTimeHours }小时`;
-					}
-					if ( playTimeMinutes > 0 ) {
-						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
-					}
-					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
-						playTimeStr += `${ playTimeSeconds }秒`;
-					}
-					
+					const playTimeStr = formatPlayTime( change.oldStatus.gameStartTime );
 					message += `（游玩时长：${ playTimeStr }）`;
 				}
 				break;
@@ -387,22 +358,7 @@ class SteamPollingService {
 				message += ` 结束游玩 ${ oldGameName }`;
 				// 如果有游戏开始时间，计算并显示旧游戏的游玩时长
 				if ( change.oldStatus?.gameStartTime ) {
-					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
-					const playTimeHours = Math.floor( playTimeMinutes / 60 );
-					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
-					
-					let playTimeStr = '';
-					if ( playTimeHours > 0 ) {
-						playTimeStr += `${ playTimeHours }小时`;
-					}
-					if ( playTimeMinutes > 0 ) {
-						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
-					}
-					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
-						playTimeStr += `${ playTimeSeconds }秒`;
-					}
-					
+					const playTimeStr = formatPlayTime( change.oldStatus.gameStartTime );
 					message += `（游玩时长：${ playTimeStr }）`;
 				}
 				message += `，开始游玩 ${ newGameName }`;

@@ -5,6 +5,7 @@
 
 import { pluginState } from '../core/state';
 import { gameNameService } from './game-name.service.js';
+import { formatPlayTime } from '../utils/format';
 import type { SteamPlayerSummary } from './steam.service';
 
 // ==================== 缓存数据结构 ====================
@@ -300,22 +301,7 @@ class SteamCacheService {
             else if (!newIsInGame && oldWasInGame) {
                 // 计算并输出游玩时间
                 if (oldStatus.gameStartTime) {
-                    const playTimeMs = Date.now() - oldStatus.gameStartTime;
-                    const playTimeMinutes = Math.floor(playTimeMs / 60000);
-                    const playTimeHours = Math.floor(playTimeMinutes / 60);
-                    const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-
-                    let playTimeStr = '';
-                    if (playTimeHours > 0) {
-                        playTimeStr += `${playTimeHours}小时`;
-                    }
-                    if (playTimeMinutes > 0) {
-                        playTimeStr += `${playTimeMinutes % 60}分钟`;
-                    }
-                    if (playTimeSeconds > 0 || playTimeStr === '') {
-                        playTimeStr += `${playTimeSeconds}秒`;
-                    }
-
+                    const playTimeStr = formatPlayTime(oldStatus.gameStartTime);
                     pluginState.logger.info(
                         `玩家 ${newStatus.personaname} (${newStatus.steamid}) 结束了游戏 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`
                     );
@@ -333,22 +319,7 @@ class SteamCacheService {
         else if (oldWasInGame && newIsInGame && oldStatus.gameextrainfo !== newStatus.gameextrainfo) {
             // 计算旧游戏的游玩时长
             if (oldStatus.gameStartTime) {
-                const playTimeMs = Date.now() - oldStatus.gameStartTime;
-                const playTimeMinutes = Math.floor(playTimeMs / 60000);
-                const playTimeHours = Math.floor(playTimeMinutes / 60);
-                const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-
-                let playTimeStr = '';
-                if (playTimeHours > 0) {
-                    playTimeStr += `${playTimeHours}小时`;
-                }
-                if (playTimeMinutes > 0) {
-                    playTimeStr += `${playTimeMinutes % 60}分钟`;
-                }
-                if (playTimeSeconds > 0 || playTimeStr === '') {
-                    playTimeStr += `${playTimeSeconds}秒`;
-                }
-
+                const playTimeStr = formatPlayTime(oldStatus.gameStartTime);
                 pluginState.logger.info(
                     `玩家 ${newStatus.personaname} (${newStatus.steamid}) 切换游戏，结束了 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`
                 );
