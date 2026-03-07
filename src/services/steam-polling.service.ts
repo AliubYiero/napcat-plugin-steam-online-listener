@@ -108,17 +108,17 @@ class SteamPollingService {
 			pluginState.logger.debug( '开始执行 Steam 状态轮询' );
 			
 			// 检测日期变化（使用本地时区）
-			const today = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
-			if (this.lastPollDate && this.lastPollDate !== today) {
-				pluginState.logger.info('[SteamPollingService] 检测到日期变化，执行每日报告和午夜快照');
-
+			const today = new Date().toLocaleDateString( 'zh-CN' ).replace( /\//g, '-' );
+			if ( this.lastPollDate && this.lastPollDate !== today ) {
+				pluginState.logger.info( '[SteamPollingService] 检测到日期变化，执行每日报告和午夜快照' );
+				
 				// 1. 最先执行：生成并推送昨日活动报告
-				await steamReportService.generateAndPushDailyReport(this.lastPollDate);
-
+				await steamReportService.generateAndPushDailyReport( this.lastPollDate );
+				
 				// 2. 记录昨天的最终状态（午夜快照，使用实际状态）
 				const yesterdayCache = steamCacheService.getCurrentCache();
-				timelineService.midnightSnapshot(yesterdayCache);
-
+				timelineService.midnightSnapshot( yesterdayCache );
+				
 				// 3. 检查并归档旧日志
 				timelineService.checkAndArchive();
 			}
@@ -153,7 +153,7 @@ class SteamPollingService {
 							pluginState.logger.info( `检测到 ${ changes.length } 个 Steam 状态变化` );
 							
 							// 记录到时间线
-							timelineService.record(changes);
+							timelineService.record( changes );
 							
 							await this.handleStatusChanges( changes, allBindItems );
 						}
@@ -272,13 +272,14 @@ class SteamPollingService {
 				}
 				break;
 			case 'outgame': {
-				let gameName = change.oldStatus?.gameextrainfo || '';
+				let gameName: string = change.oldStatus?.gameextrainfo || '';
 				// 尝试获取格式化后的游戏名称
 				if ( change.oldStatus?.gameid && gameName ) {
-					gameName = await gameNameService.getFormattedGameName(
+					const formatGameName = await gameNameService.getFormattedGameName(
 						change.oldStatus.gameid,
 						gameName,
 					);
+					formatGameName && ( gameName = formatGameName );
 				}
 				message += ` 结束游玩 ${ gameName }`;
 				// 如果有游戏开始时间，计算并显示游玩时长
@@ -331,80 +332,83 @@ class SteamPollingService {
 				}
 				break;
 			}
-						case 'quitGame': {
-							let gameName = change.oldStatus?.gameextrainfo || '';
-							// 尝试获取格式化后的游戏名称
-							if (change.oldStatus?.gameid && gameName) {
-								gameName = await gameNameService.getFormattedGameName(
-									change.oldStatus.gameid,
-									gameName,
-								);
-							}
-							message += ` 结束游玩并下线 ${gameName}`;
-							// 如果有游戏开始时间，计算并显示游玩时长
-							if (change.oldStatus?.gameStartTime) {
-								const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-								const playTimeMinutes = Math.floor(playTimeMs / 60000);
-								const playTimeHours = Math.floor(playTimeMinutes / 60);
-								const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-								
-								let playTimeStr = '';
-								if (playTimeHours > 0) {
-									playTimeStr += `${playTimeHours}小时`;
-								}
-								if (playTimeMinutes > 0) {
-									playTimeStr += `${playTimeMinutes % 60}分钟`;
-								}
-								if (playTimeSeconds > 0 || playTimeStr === '') {
-									playTimeStr += `${playTimeSeconds}秒`;
-								}
-								
-								message += `（游玩时长：${playTimeStr}）`;
-							}
-							break;
-						}
-						case 'switchGame': {
-							// 获取旧游戏名称
-							let oldGameName = change.oldStatus?.gameextrainfo || '';
-							if (change.oldStatus?.gameid && oldGameName) {
-								oldGameName = await gameNameService.getFormattedGameName(
-									change.oldStatus.gameid,
-									oldGameName,
-								);
-							}
-							// 获取新游戏名称
-							let newGameName = '';
-							if (change.newStatus.gameid && change.newStatus.gameextrainfo) {
-								newGameName = await gameNameService.getFormattedGameName(
-									change.newStatus.gameid,
-									change.newStatus.gameextrainfo,
-								);
-							}
-							message += ` 结束游玩 ${oldGameName}`;
-							// 如果有游戏开始时间，计算并显示旧游戏的游玩时长
-							if (change.oldStatus?.gameStartTime) {
-								const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
-								const playTimeMinutes = Math.floor(playTimeMs / 60000);
-								const playTimeHours = Math.floor(playTimeMinutes / 60);
-								const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);
-								
-								let playTimeStr = '';
-								if (playTimeHours > 0) {
-									playTimeStr += `${playTimeHours}小时`;
-								}
-								if (playTimeMinutes > 0) {
-									playTimeStr += `${playTimeMinutes % 60}分钟`;
-								}
-								if (playTimeSeconds > 0 || playTimeStr === '') {
-									playTimeStr += `${playTimeSeconds}秒`;
-								}
-								
-								message += `（游玩时长：${playTimeStr}）`;
-							}
-							message += `，开始游玩 ${newGameName}`;
-							break;
-						}
-						default:
+			case 'quitGame': {
+				let gameName = change.oldStatus?.gameextrainfo || '';
+				// 尝试获取格式化后的游戏名称
+				if ( change.oldStatus?.gameid && gameName ) {
+					const formatGameName = await gameNameService.getFormattedGameName(
+						change.oldStatus.gameid,
+						gameName,
+					);
+					formatGameName && ( gameName = formatGameName );
+				}
+				message += ` 结束游玩并下线 ${ gameName }`;
+				// 如果有游戏开始时间，计算并显示游玩时长
+				if ( change.oldStatus?.gameStartTime ) {
+					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
+					const playTimeHours = Math.floor( playTimeMinutes / 60 );
+					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
+					
+					let playTimeStr = '';
+					if ( playTimeHours > 0 ) {
+						playTimeStr += `${ playTimeHours }小时`;
+					}
+					if ( playTimeMinutes > 0 ) {
+						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
+					}
+					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
+						playTimeStr += `${ playTimeSeconds }秒`;
+					}
+					
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				break;
+			}
+			case 'switchGame': {
+				// 获取旧游戏名称
+				let oldGameName = change.oldStatus?.gameextrainfo || '';
+				if ( change.oldStatus?.gameid && oldGameName ) {
+					const formatOldGameName = await gameNameService.getFormattedGameName(
+						change.oldStatus.gameid,
+						oldGameName,
+					);
+					formatOldGameName && ( oldGameName = formatOldGameName );
+				}
+				// 获取新游戏名称
+				let newGameName = '';
+				if ( change.newStatus.gameid && change.newStatus.gameextrainfo ) {
+					const formatNewGameName = await gameNameService.getFormattedGameName(
+						change.newStatus.gameid,
+						change.newStatus.gameextrainfo,
+					);
+					formatNewGameName && ( newGameName = formatNewGameName );
+				}
+				message += ` 结束游玩 ${ oldGameName }`;
+				// 如果有游戏开始时间，计算并显示旧游戏的游玩时长
+				if ( change.oldStatus?.gameStartTime ) {
+					const playTimeMs = Date.now() - change.oldStatus.gameStartTime;
+					const playTimeMinutes = Math.floor( playTimeMs / 60000 );
+					const playTimeHours = Math.floor( playTimeMinutes / 60 );
+					const playTimeSeconds = Math.floor( ( playTimeMs % 60000 ) / 1000 );
+					
+					let playTimeStr = '';
+					if ( playTimeHours > 0 ) {
+						playTimeStr += `${ playTimeHours }小时`;
+					}
+					if ( playTimeMinutes > 0 ) {
+						playTimeStr += `${ playTimeMinutes % 60 }分钟`;
+					}
+					if ( playTimeSeconds > 0 || playTimeStr === '' ) {
+						playTimeStr += `${ playTimeSeconds }秒`;
+					}
+					
+					message += `（游玩时长：${ playTimeStr }）`;
+				}
+				message += `，开始游玩 ${ newGameName }`;
+				break;
+			}
+			default:
 				message += ` 状态更新: ${ steamService.formatPlayerState( change.newStatus.personastate ) }`;
 				if ( change.newStatus.gameextrainfo ) {
 					message += ` - ${ change.newStatus.gameextrainfo }`;
@@ -428,7 +432,7 @@ class SteamPollingService {
 			// 构建SVG内容
 			const statusText = this.getStatusText( change );
 			// 对于退出游戏状态，使用旧状态中的游戏名称；其他状态（包括切换游戏）使用新状态
-			let gameName = '';
+			let gameName: string | null = '';
 			if ( ( change.changeType === 'outgame' || change.changeType === 'quitGame' )
 				&& ( change.oldStatus && change.oldStatus.gameextrainfo && change.oldStatus.gameid ) ) {
 				gameName = await gameNameService.getFormattedGameName(
@@ -443,7 +447,7 @@ class SteamPollingService {
 					change.newStatus.gameextrainfo,
 				);
 			}
-			const hasGameName = !!gameName;
+			const hasGameName = Boolean( gameName );
 			
 			// 动态计算宽度
 			const MIN_SVG_WIDTH = 400;
@@ -514,7 +518,7 @@ class SteamPollingService {
     <text x="115" y="59" fill="#898a8b" font-size="16">
       ${ escapeXml( statusText ) }
     </text>
-    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ escapeXml( gameName ) }</text>
+    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${ escapeXml( gameName! ) }</text>
   </g>
 </svg>`;
 			const svgContent = hasGameName ? hasGameNameSvgContent : notHasGameNameSvgContent;
