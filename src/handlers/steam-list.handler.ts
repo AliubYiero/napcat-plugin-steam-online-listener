@@ -41,7 +41,7 @@ export async function handleSteamList(ctx: NapCatPluginContext, event: OB11Messa
         }
 
         // 获取缓存状态
-        const cache = steamCacheService.loadCache();
+        const cache = steamCacheService.getCurrentCache();
         
         // 生成列表信息，显示缓存的 Steam 状态
         const listItems = bindData.map((item, index) => {

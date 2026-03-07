@@ -56,7 +56,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     }
 
     // 处理 notifyStatusTypes - 状态推送类型列表
-    const validStatusTypes = ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame'];
+    const validStatusTypes = ['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame', 'switchGame'];
     if (Array.isArray(raw.notifyStatusTypes)) {
         // 过滤掉无效的状态类型
         out.notifyStatusTypes = raw.notifyStatusTypes

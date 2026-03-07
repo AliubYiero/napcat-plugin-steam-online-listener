@@ -97,7 +97,7 @@ export function buildConfigSchema( ctx: NapCatPluginContext ): PluginConfigSchem
 				{ label: '开始挂机', value: 'inAfk' },
 				{ label: '结束挂机', value: 'outAfk' },
 				{ label: '游戏下线', value: 'quitGame' },
-				{ label: '切换游戏', value: 'switchgame' },
+				{ label: '切换游戏', value: 'switchGame' },
 			],
 			['online', 'offline', 'ingame', 'outgame', 'inAfk', 'outAfk', 'quitGame', 'switchGame'],
 			'选择要推送的 Steam 状态变化类型，默认全部推送'
