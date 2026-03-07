@@ -160,7 +160,9 @@ function generateSteamReport(
 <svg width="${viewBoxWidth}" height="${totalHeight}"
      viewBox="0 0 ${viewBoxWidth} ${totalHeight}"
      fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="background-color: ${COLORS.bg}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <!-- 背景 -->
+  <rect width="${viewBoxWidth}" height="${totalHeight}" fill="${COLORS.bg}"></rect>
   <text x="${padding}" y="32" fill="${COLORS.textPrimary}" font-size="20" font-weight="700" dominant-baseline="hanging">
     Steam 活动报告 (${escapeXml(date)})
   </text>
