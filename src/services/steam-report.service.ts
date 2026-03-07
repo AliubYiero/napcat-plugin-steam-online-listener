@@ -107,7 +107,7 @@ function generateUserCard(
       <g transform="translate(${padding}, 20)">
         <text x="0" y="0" fill="${COLORS.textPrimary}" font-size="18" font-weight="600" dominant-baseline="hanging">
           <tspan>
-            ${escapeXml(user.personName)}
+            ${escapeXml(user.personName)}${user.fromNickname ? ` (${escapeXml(user.fromNickname)})` : ''}
           </tspan>
           <tspan y="9" fill="${COLORS.textMuted}" font-size="11" font-family="monospace" dominant-baseline="hanging">
             ${escapeXml(user.steamId)}
@@ -394,7 +394,7 @@ class SteamReportService {
                         sourceMap.set(sourceKey, []);
                     }
                     const userForSource = fromInfo.nickname
-                        ? { ...reportUser, personName: fromInfo.nickname }
+                        ? { ...reportUser, fromNickname: fromInfo.nickname }
                         : reportUser;
                     sourceMap.get(sourceKey)!.push(userForSource);
                 }
@@ -531,7 +531,7 @@ class SteamReportService {
                 const bindItem = sourceBindData.find(item => item.steamId === user.steamId);
                 const fromInfo = bindItem?.from?.find(f => `${f.type}:${f.id}` === sourceKey);
                 if (fromInfo?.nickname) {
-                    return { ...user, personName: fromInfo.nickname };
+                    return { ...user, fromNickname: fromInfo.nickname };
                 }
                 return user;
             });

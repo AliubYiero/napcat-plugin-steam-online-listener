@@ -125,6 +125,7 @@ export interface ReportPlayedGame {
 export interface ReportUser {
     steamId: string;        // STEAM ID64
     personName: string;     // Steam 用户的昵称
+    fromNickname?: string;  // 来源自定义昵称（可选）
     onlineDuration: number; // 在线时长（秒）
     playedDuration: number; // 游戏时长（秒）
     playedGame?: ReportPlayedGame[];
