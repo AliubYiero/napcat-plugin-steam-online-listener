@@ -25,6 +25,7 @@ import { handleSteamReset } from './steam-reset.handler';
 import { handleSteamPolling } from './steam-polling.handler';
 import { handleAdmin } from './admin.handler';
 import { handleGroup } from './group.handler';
+import { handleSteamReport } from './steam-report.handler';
 
 /**
  * 消息处理主函数
@@ -74,6 +75,9 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 break;
             case 'remove':
                 await handleSteamRemove(ctx, event, args);
+                break;
+            case 'report':
+                await handleSteamReport(ctx, event, args);
                 break;
             case 'polling':
                 await handleSteamPolling(ctx, event, args);
