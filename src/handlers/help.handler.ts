@@ -52,6 +52,8 @@ async function sendTextHelp(ctx: NapCatPluginContext, event: OB11Message, isAdmi
         '[= 辅助指令 =]',
         `${prefix} help - 显示帮助信息`,
         `${prefix} search <Steam昵称或链接> - 查询Steam ID64`,
+        `${prefix} report today - 查询今日 Steam 活动报告`,
+        `${prefix} report yesterday - 查询昨日 Steam 活动报告`,
         '',
         '[= 如何获取 Steam ID =]',
         '方法一：通过好友列表',
