@@ -39,14 +39,12 @@ describe('formatPlayTime', () => {
 	it('应正确格式化整小时（无分钟和秒）', () => {
 		const now = 10000000;
 		vi.spyOn(Date, 'now').mockReturnValue(now);
-		// playTimeMinutes=120 > 0, 所以会输出 "0分钟"
-		expect(formatPlayTime(now - 7200000)).toBe('2小时0分钟');
+		expect(formatPlayTime(now - 7200000)).toBe('2小时');
 	});
 
 	it('应正确格式化小时+秒（无分钟）', () => {
 		const now = 10000000;
 		vi.spyOn(Date, 'now').mockReturnValue(now);
-		// playTimeMinutes=60 > 0, 所以会输出 "0分钟"
-		expect(formatPlayTime(now - 3610000)).toBe('1小时0分钟10秒');
+		expect(formatPlayTime(now - 3610000)).toBe('1小时10秒');
 	});
 });

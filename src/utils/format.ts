@@ -17,7 +17,7 @@ export function formatPlayTime(gameStartTime: number): string {
 	if (playTimeHours > 0) {
 		playTimeStr += `${playTimeHours}小时`;
 	}
-	if (playTimeMinutes > 0) {
+	if (playTimeMinutes % 60 > 0) {
 		playTimeStr += `${playTimeMinutes % 60}分钟`;
 	}
 	if (playTimeSeconds > 0 || playTimeStr === '') {
