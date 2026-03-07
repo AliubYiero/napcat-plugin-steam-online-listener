@@ -262,11 +262,12 @@ class SteamReportService {
         grouped: Map<string, TimelineLogEntry[]>,
         midnightTs: number,
         bindData: SteamBindItem[],
+        customEndTime?: number,
     ): Promise<ReportUser[]> {
         const users: ReportUser[] = [];
 
         for (const [steamId, entries] of grouped) {
-            const durations = this.calculateDurations(entries, midnightTs);
+            const durations = this.calculateDurations(entries, midnightTs, customEndTime);
 
             const bindItem = bindData.find(item => item.steamId === steamId);
             const personName = bindItem?.personName || steamId;
@@ -297,6 +298,7 @@ class SteamReportService {
     private calculateDurations(
         entries: TimelineLogEntry[],
         midnightTs: number,
+        customEndTime?: number,
     ): {
         onlineDuration: number;
         playedDuration: number;
@@ -310,8 +312,14 @@ class SteamReportService {
         let gameStartTime: number | null = null;
         let currentGameId: string | null = null;
 
+        // 使用自定义结束时间或默认的午夜时间
+        const endTime = customEndTime ?? midnightTs;
+
         for (const entry of entries) {
             const [, changeType, gameId, updateTime] = entry;
+
+            // 跳过超过结束时间的事件
+            if (updateTime > endTime) continue;
 
             // 处理在线状态开始
             if (ONLINE_STATES.has(changeType) && onlineStartTime === null) {
@@ -346,12 +354,12 @@ class SteamReportService {
             }
         }
 
-        // 未关闭的时间段截止到午夜
+        // 未关闭的时间段截止到结束时间
         if (onlineStartTime !== null) {
-            onlineDuration += Math.floor((midnightTs - onlineStartTime) / 1000);
+            onlineDuration += Math.floor((endTime - onlineStartTime) / 1000);
         }
         if (gameStartTime !== null && currentGameId) {
-            const duration = Math.floor((midnightTs - gameStartTime) / 1000);
+            const duration = Math.floor((endTime - gameStartTime) / 1000);
             games.set(currentGameId, (games.get(currentGameId) || 0) + duration);
             playedDuration += duration;
         }
@@ -395,6 +403,49 @@ class SteamReportService {
     }
 
     /**
+     * 推送单来源报告
+     */
+    private async pushToSingleSource(
+        sourceKey: string,
+        users: ReportUser[],
+        dateLabel: string,
+    ): Promise<void> {
+        try {
+            if (users.length === 0) return;
+
+            const svg = generateSteamReport(users, {
+                date: dateLabel,
+                config: { cardWidth: 500 },
+            });
+
+            const base64 = await renderSvgToBase64(svg);
+
+            if (!base64) {
+                pluginState.logger.warn(`[SteamReportService] 渲染 ${sourceKey} 的报告图片失败`);
+                return;
+            }
+
+            const [type, id] = sourceKey.split(':');
+            const message = [
+                {
+                    type: 'image' as const,
+                    data: { file: `base64://${base64}` },
+                },
+            ];
+
+            if (type === 'group') {
+                await sendGroupMessage(pluginState.ctx, parseInt(id), message);
+            } else if (type === 'private') {
+                await sendPrivateMessage(pluginState.ctx, parseInt(id), message);
+            }
+
+            pluginState.logger.info(`[SteamReportService] 已推送报告到 ${sourceKey}，包含 ${users.length} 个用户`);
+        } catch (error) {
+            pluginState.logger.error(`[SteamReportService] 推送报告到 ${sourceKey} 失败:`, error);
+        }
+    }
+
+    /**
      * 生成 SVG 并推送到各来源
      */
     private async generateAndPush(
@@ -405,39 +456,89 @@ class SteamReportService {
         const dateLabel = `${parts[0]}年${parts[1]}月${parts[2]}日`;
 
         for (const [sourceKey, users] of sourceGroups) {
-            try {
-                if (users.length === 0) continue;
+            await this.pushToSingleSource(sourceKey, users, dateLabel);
+        }
+    }
 
-                const svg = generateSteamReport(users, {
-                    date: dateLabel,
-                    config: { cardWidth: 500 },
-                });
+    /**
+     * 生成并推送指定日期的报告（按需报告）
+     * @param dateStr 日期字符串，格式如 "2026-3-6"
+     * @param endTime 报告结束时间戳
+     * @param sourceKey 来源标识，格式如 "group:123456" 或 "private:123456"
+     * @returns 是否成功生成并推送
+     */
+    async generateOnDemandReport(
+        dateStr: string,
+        endTime: number,
+        sourceKey: string,
+    ): Promise<boolean> {
+        try {
+            pluginState.logger.info(`[SteamReportService] 开始生成 ${dateStr} 的按需报告，来源: ${sourceKey}`);
 
-                const base64 = await renderSvgToBase64(svg);
-
-                if (!base64) {
-                    pluginState.logger.warn(`[SteamReportService] 渲染 ${sourceKey} 的报告图片失败`);
-                    continue;
-                }
-
-                const [type, id] = sourceKey.split(':');
-                const message = [
-                    {
-                        type: 'image' as const,
-                        data: { file: `base64://${base64}` },
-                    },
-                ];
-
-                if (type === 'group') {
-                    await sendGroupMessage(pluginState.ctx, parseInt(id), message);
-                } else if (type === 'private') {
-                    await sendPrivateMessage(pluginState.ctx, parseInt(id), message);
-                }
-
-                pluginState.logger.info(`[SteamReportService] 已推送报告到 ${sourceKey}，包含 ${users.length} 个用户`);
-            } catch (error) {
-                pluginState.logger.error(`[SteamReportService] 推送报告到 ${sourceKey} 失败:`, error);
+            // 步骤1: 加载指定日期日志
+            const log = this.loadYesterdayLog(dateStr);
+            if (log.d.length === 0) {
+                pluginState.logger.info('[SteamReportService] 指定日期无状态记录');
+                return false;
             }
+
+            // 步骤2: 按 steamId 归类
+            const grouped = this.groupBySteamId(log);
+
+            // 步骤3: 过滤 sourceKey 对应的绑定用户
+            const bindData = pluginState.loadDataFile<SteamBindItem[]>('steam-bind-data.json', []);
+            const sourceBindData = bindData.filter(item =>
+                item.from?.some(fromInfo => `${fromInfo.type}:${fromInfo.id}` === sourceKey),
+            );
+
+            if (sourceBindData.length === 0) {
+                pluginState.logger.info(`[SteamReportService] 来源 ${sourceKey} 无绑定用户`);
+                return false;
+            }
+
+            // 只保留该来源绑定的 steamId
+            const allowedSteamIds = new Set(sourceBindData.map(item => item.steamId));
+            const filteredGrouped = new Map<string, TimelineLogEntry[]>();
+            for (const [steamId, entries] of grouped) {
+                if (allowedSteamIds.has(steamId)) {
+                    filteredGrouped.set(steamId, entries);
+                }
+            }
+
+            if (filteredGrouped.size === 0) {
+                pluginState.logger.info('[SteamReportService] 该来源无有效日志记录');
+                return false;
+            }
+
+            // 步骤4: 计算时长（使用自定义 endTime）
+            const midnightTs = this.getMidnightTimestamp(dateStr);
+            const reportUsers = await this.buildReportUsers(filteredGrouped, midnightTs, sourceBindData, endTime);
+
+            if (reportUsers.length === 0) {
+                pluginState.logger.info('[SteamReportService] 无有效用户数据');
+                return false;
+            }
+
+            // 步骤5: 应用来源自定义昵称
+            const usersWithNickname = reportUsers.map(user => {
+                const bindItem = sourceBindData.find(item => item.steamId === user.steamId);
+                const fromInfo = bindItem?.from?.find(f => `${f.type}:${f.id}` === sourceKey);
+                if (fromInfo?.nickname) {
+                    return { ...user, personName: fromInfo.nickname };
+                }
+                return user;
+            });
+
+            // 步骤6: 生成并推送报告
+            const parts = dateStr.split('-').map(Number);
+            const dateLabel = `${parts[0]}年${parts[1]}月${parts[2]}日`;
+            await this.pushToSingleSource(sourceKey, usersWithNickname, dateLabel);
+
+            pluginState.logger.info('[SteamReportService] 按需报告推送完成');
+            return true;
+        } catch (error) {
+            pluginState.logger.error('[SteamReportService] 生成按需报告失败:', error);
+            return false;
         }
     }
 }
