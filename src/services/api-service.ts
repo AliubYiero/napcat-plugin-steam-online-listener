@@ -26,6 +26,7 @@ import { steamService } from './steam.service';
 import { steamBindService } from './steam-bind.service';
 import type { FromInfo } from '../types';
 import { gameNameService } from './game-name.service';
+import { getChinaDateParts } from '../utils/format';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import path from 'path';
@@ -35,16 +36,8 @@ import path from 'path';
  * 格式: YYYY-MM-DD-HH-mm-ss
  */
 function getChinaTimestamp(): string {
-    const now = new Date();
-    // 转换为中国时区（UTC+8）
-    const chinaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const year = chinaTime.getUTCFullYear();
-    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-    const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
+    const { year, month, day, hour, minute, second } = getChinaDateParts();
+    return `${year}-${month}-${day}-${hour}-${minute}-${second}`;
 }
 
 /**

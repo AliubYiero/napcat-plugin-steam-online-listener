@@ -8,6 +8,7 @@ import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plu
 import { steamReportService } from '../services/steam-report.service';
 import { pluginState } from '../core/state';
 import { sendReply } from './utils';
+import { getChinaDateParts } from '../utils/format';
 
 /**
  * 处理 #steam report 指令
@@ -66,35 +67,33 @@ export async function handleSteamReport(
  */
 function calculateReportRange(day: string): { dateStr: string; endTime: number; dateLabel: string } {
     const now = new Date();
-
-    // 获取中国时区的当前日期 (UTC+8)
-    const chinaTime = new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
-    const year = chinaTime.getFullYear();
-    const month = chinaTime.getMonth();
-    const date = chinaTime.getDate();
+    const parts = getChinaDateParts(now);
+    const year = Number(parts.year);
+    const month = Number(parts.month) - 1; // Date 构造函数月份从 0 开始
+    const date = Number(parts.day);
 
     // 今日日期字符串
     const todayStr = `${year}-${month + 1}-${date}`;
 
     if (day === 'today') {
-        // 今日：结束时间为当前
         return {
             dateStr: todayStr,
             endTime: now.getTime(),
             dateLabel: '今日',
         };
     } else {
-        // 昨日：计算昨日日期
-        const yesterdayDate = new Date(chinaTime);
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterdayStr = `${yesterdayDate.getFullYear()}-${yesterdayDate.getMonth() + 1}-${yesterdayDate.getDate()}`;
+        // 昨日：使用 Intl 获取昨日的日期部分
+        const yesterdayMs = now.getTime() - 86400000;
+        const yesterdayParts = getChinaDateParts(new Date(yesterdayMs));
+        const yesterdayStr = `${Number(yesterdayParts.year)}-${Number(yesterdayParts.month)}-${Number(yesterdayParts.day)}`;
 
-        // 今日 0:00 时间戳 = 昨日 24:00
-        const startOfToday = new Date(year, month, date).getTime();
+        // 今日 0:00 时间戳
+        // 用 Date.UTC 计算中国时区的 0:00 对应的 UTC 时间戳
+        const startOfTodayUTC = Date.UTC(year, month, date) - 8 * 60 * 60 * 1000;
 
         return {
             dateStr: yesterdayStr,
-            endTime: startOfToday,
+            endTime: startOfTodayUTC,
             dateLabel: '昨日',
         };
     }
