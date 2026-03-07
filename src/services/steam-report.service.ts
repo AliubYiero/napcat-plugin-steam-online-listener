@@ -401,6 +401,11 @@ class SteamReportService {
             }
         }
 
+        // 对每个来源的用户按游戏时长降序排序
+        for (const users of sourceMap.values()) {
+            users.sort((a, b) => b.playedDuration - a.playedDuration);
+        }
+
         return sourceMap;
     }
 
