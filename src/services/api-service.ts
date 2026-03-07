@@ -36,6 +36,23 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * 获取中国时区（UTC+8）的时间戳字符串
+ * 格式: YYYY-MM-DD-HH-mm-ss
+ */
+function getChinaTimestamp(): string {
+    const now = new Date();
+    // 转换为中国时区（UTC+8）
+    const chinaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const year = chinaTime.getUTCFullYear();
+    const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(chinaTime.getUTCDate()).padStart(2, '0');
+    const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
+}
+
+/**
  * 注册 API 路由
  */
 export function registerApiRoutes(ctx: NapCatPluginContext): void {
@@ -426,8 +443,8 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 zip.addFile(file, content);
             }
 
-            // 生成时间戳文件名
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            // 生成时间戳文件名（中国时区）
+            const timestamp = getChinaTimestamp();
             const zipFileName = `steam-plugin-data-export-${timestamp}.zip`;
 
             // 发送 zip 文件
@@ -500,7 +517,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 fs.mkdirSync(backupDir, { recursive: true });
             }
 
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const timestamp = getChinaTimestamp();
             const existingFiles = fs.readdirSync(dataPath).filter(f => f.endsWith('.json'));
 
             for (const file of existingFiles) {
