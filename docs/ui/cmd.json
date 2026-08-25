@@ -1,0 +1,91 @@
+{
+	"core": [
+		{
+			"cmd": "#steam bind <steam-id> [自定义昵称]",
+			"desc": "绑定 Steam 用户"
+		},
+		{
+			"cmd": "#steam bind-batch <steam-id-1> [自定义昵称1] <steam-id-2> [自定义昵称2] ...",
+			"desc": "批量绑定 Steam 用户"
+		},
+		{
+			"cmd": "#steam list",
+			"desc": "获取已绑定的 Steam 数据"
+		},
+		{
+			"cmd": "#steam remove <steam-id>",
+			"desc": "移除指定的绑定数据"
+		},
+		{
+			"cmd": "#steam reset",
+			"desc": "清空当前群组/用户绑定数据"
+		},
+		{
+			"cmd": "#steam report today",
+			"desc": "查询今日 Steam 活动报告"
+		},
+		{
+			"cmd": "#steam report yesterday",
+			"desc": "查询昨日 Steam 活动报告"
+		}
+	],
+	"helper": [
+		{
+			"cmd": "#steam help",
+			"desc": "显示帮助信息"
+		},
+		{
+			"cmd": "#steam search <昵称或链接>",
+			"desc": "查询 Steam ID64"
+		}
+	],
+	"admin": [
+		{
+			"cmd": "#steam polling",
+			"desc": "手动触发状态轮询 (仅私聊)"
+		},
+		{
+			"cmd": "#steam group add <群号>",
+			"desc": "添加群聊白名单 (仅私聊)"
+		},
+		{
+			"cmd": "#steam group remove <群号>",
+			"desc": "移除群聊白名单 (仅私聊)"
+		},
+		{
+			"cmd": "#steam group list",
+			"desc": "查看已管理的群组列表 (仅私聊)"
+		},
+		{
+			"cmd": "#steam admin list",
+			"desc": "查看管理员列表 (仅私聊)"
+		},
+		{
+			"cmd": "#steam admin add <QQ 号>",
+			"desc": "添加管理员 (仅私聊)"
+		},
+		{
+			"cmd": "#steam admin remove <QQ 号>",
+			"desc": "移除管理员 (仅私聊)"
+		}
+	],
+	"steamIdHelp": {
+		"title": "如何获取 Steam ID",
+		"methods": [
+			{
+				"name": "方法一：通过好友列表",
+				"steps": [
+					"打开 Steam 客户端，进入好友列表",
+					"右键点击好友 → 查看个人资料",
+					"查看 STEAM 浏览器地址栏：<br>&nbsp;&nbsp;• <span class=\"highlight\">/id/</span> 后面的英文是自定义 ID<br>&nbsp;&nbsp;• <span class=\"highlight\">/profiles/</span> 后面的 17 位数字是 Steam ID64"
+				]
+			},
+			{
+				"name": "方法二：通过个人资料链接",
+				"steps": [
+					"使用 <span class=\"cmd\">#steam search</span> 查询自定义 ID 或完整链接"
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Steam 插件帮助生成器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        body {
+            background-color: #171a21;
+            color: #c7d5e0;
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .generate-btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Noto Sans SC', sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        .user-btn {
+            background: #66c0f4;
+            color: #fff;
+        }
+        .user-btn:hover {
+            background: #4fa8d8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 192, 244, 0.4);
+        }
+        .admin-btn {
+            background: #ff5722;
+            color: #fff;
+        }
+        .admin-btn:hover {
+            background: #e64a19;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 87, 34, 0.4);
+        }
+        .container {
+            width: 800px;
+            background-color: #1b2838;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            border-bottom: 2px solid #66c0f4;
+            padding-bottom: 15px;
+            margin-top: 0;
+            font-size: 28px;
+            letter-spacing: 2px;
+        }
+        h2 {
+            color: #66c0f4;
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            background: rgba(102, 192, 244, 0.1);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #66c0f4;
+        }
+        h2.admin {
+            color: #ff5722;
+            background: rgba(255, 87, 34, 0.1);
+            border-left: 4px solid #ff5722;
+        }
+        .cmd-group {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .cmd {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #ffffff;
+            background: #2a475e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .cmd.admin-cmd {
+            background: #5e2a2a;
+            color: #ffccbc;
+        }
+        .desc {
+            font-size: 14px;
+            color: #8f98a0;
+            margin-left: 10px;
+        }
+        .step {
+            margin: 5px 0;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .highlight {
+            color: #ff5722;
+            font-weight: bold;
+        }
+        .tag {
+            font-size: 10px;
+            background: #ff5722;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #5c6b7f;
+            border-top: 1px solid #2a475e;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 按钮组 -->
+    <div class="btn-group">
+        <button id="userBtn" class="generate-btn user-btn">📸 生成用户帮助图片</button>
+        <button id="adminBtn" class="generate-btn admin-btn">📸 生成管理帮助图片</button>
+    </div>
+
+    <!-- 帮助内容容器 -->
+    <div id="helpContainer" class="container">
+        <h1>Steam Online Listener 插件帮助</h1>
+
+        <h2>核心指令</h2>
+        <div id="core-commands"></div>
+
+        <h2>辅助指令</h2>
+        <div id="helper-commands"></div>
+
+        <div id="steam-id-help"></div>
+
+        <!-- 管理员指令区域（动态显示） -->
+        <div id="admin-section" style="display: none;">
+            <h2 class="admin">管理员指令 <span class="tag">ADMIN</span></h2>
+            <div id="admin-commands"></div>
+        </div>
+
+        <div id="footer-text" class="footer">Steam Online Listener • User Guide</div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="position: relative; max-width: 90%; max-height: 85%;">
+            <img id="previewImage" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);" />
+            <button id="closeModal" style="position: absolute; top: -40px; right: 0; background: transparent; color: #fff; border: none; font-size: 24px; cursor: pointer;">✕</button>
+        </div>
+        <div style="margin-top: 20px;">
+            <a id="downloadLink" style="padding: 10px 20px; background: #66c0f4; color: #fff; text-decoration: none; border-radius: 4px; font-family: 'Noto Sans SC', sans-serif; cursor: pointer;">⬇️ 下载图片</a>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loading" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(27, 40, 56, 0.95); padding: 30px 50px; border-radius: 8px; z-index: 3000; color: #66c0f4; font-size: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        正在生成图片...
+    </div>
+
+    <!-- 引入 html2canvas -->
+    <script src="html2canvas.min.js"></script>
+    <script>
+        // 如果本地加载失败，尝试从 CDN 加载
+        if (typeof html2canvas === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        let commandData = null;
+
+        // 动态加载命令数据
+        async function loadCommands() {
+            try {
+                const response = await fetch('cmd.json');
+                commandData = await response.json();
+
+                // 渲染核心指令
+                const coreContainer = document.getElementById('core-commands');
+                coreContainer.innerHTML = commandData.core.map(item => `
+                    <div class="cmd-group">
+                        <span class="cmd">${escapeHtml(item.cmd)}</span>
+                        <span class="desc">${escapeHtml(item.desc)}</span>
+                    </div>
+                `).join('');
+
+                // 渲染辅助指令
+                const helperContainer = document.getElementById('helper-commands');
+                helperContainer.innerHTML = commandData.helper.map(item => `
+                    <div class="cmd-group">
+                        <span class="cmd">${escapeHtml(item.cmd)}</span>
+                        <span class="desc">${escapeHtml(item.desc)}</span>
+                    </div>
+                `).join('');
+
+                // 渲染 Steam ID 帮助
+                const steamIdContainer = document.getElementById('steam-id-help');
+                let steamIdHtml = `<h2>${escapeHtml(commandData.steamIdHelp.title)}</h2>`;
+                commandData.steamIdHelp.methods.forEach((method, index) => {
+                    steamIdHtml += `<div class="step"${index === 1 ? ' style="margin-top:10px;"' : ''}><strong>${escapeHtml(method.name)}</strong></div>`;
+                    method.steps.forEach((step, stepIndex) => {
+                        const prefix = method.steps.length > 1 ? `${stepIndex + 1}. ` : '• ';
+                        steamIdHtml += `<div class="step">${prefix}${step}</div>`;
+                    });
+                });
+                steamIdContainer.innerHTML = steamIdHtml;
+
+                // 渲染管理员指令
+                const adminContainer = document.getElementById('admin-commands');
+                adminContainer.innerHTML = commandData.admin.map(item => `
+                    <div class="cmd-group">
+                        <span class="cmd admin-cmd">${escapeHtml(item.cmd)}</span>
+                        <span class="desc">${escapeHtml(item.desc)}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载命令数据失败:', error);
+            }
+        }
+
+        // HTML 转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 切换到用户视图
+        function setUserView() {
+            document.getElementById('admin-section').style.display = 'none';
+            document.getElementById('footer-text').textContent = 'Steam Online Listener • User Guide';
+        }
+
+        // 切换到管理员视图
+        function setAdminView() {
+            document.getElementById('admin-section').style.display = 'block';
+            document.getElementById('footer-text').textContent = 'Steam Online Listener • Admin Guide';
+        }
+
+        // 生成图片功能
+        async function generateImage(type) {
+            const loading = document.getElementById('loading');
+            const modal = document.getElementById('imageModal');
+            const previewImage = document.getElementById('previewImage');
+            const downloadLink = document.getElementById('downloadLink');
+            const container = document.querySelector('.container');
+
+            // 设置视图
+            if (type === 'user') {
+                setUserView();
+            } else {
+                setAdminView();
+            }
+
+            // 等待 DOM 更新
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 显示加载提示
+            loading.style.display = 'block';
+
+            try {
+                // 等待字体加载完成
+                await document.fonts.ready;
+
+                // 使用 html2canvas 渲染
+                const canvas = await html2canvas(container, {
+                    backgroundColor: '#1b2838',
+                    scale: 2, // 高清输出
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    imageTimeout: 15000
+                });
+
+                // 转换为图片数据
+                const imageData = canvas.toDataURL('image/png');
+
+                // 设置下载文件名
+                const filename = type === 'user' ? 'user-help.png' : 'admin-help.png';
+                downloadLink.download = filename;
+
+                // 显示预览
+                previewImage.src = imageData;
+                downloadLink.href = imageData;
+                modal.style.display = 'flex';
+
+            } catch (error) {
+                console.error('生成图片失败:', error);
+                alert('生成图片失败，请稍后重试');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 页面加载完成后加载数据
+        document.addEventListener('DOMContentLoaded', loadCommands);
+
+        // 用户按钮点击事件
+        document.getElementById('userBtn').addEventListener('click', function() {
+            generateImage('user');
+        });
+
+        // 管理员按钮点击事件
+        document.getElementById('adminBtn').addEventListener('click', function() {
+            generateImage('admin');
+        });
+
+        // 关闭模态框
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('imageModal').style.display = 'none';
+        });
+
+        // 点击背景关闭模态框
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

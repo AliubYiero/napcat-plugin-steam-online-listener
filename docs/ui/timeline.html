@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+<body>
+	
+	
+	<script>
+		// ============ 配置与工具 ============
+		
+		const COLORS = {
+			bg: '#f9fafb',          // 页面背景
+			card: '#ffffff',        // 卡片背景
+			border: '#e5e7eb',      // 边框
+			textPrimary: '#111827', // 主要文字 (黑)
+			textSecondary: '#6b7280', // 次要文字 (灰)
+			textMuted: '#9ca3af',   // 弱化文字 (浅灰)
+			divider: '#f3f4f6',     // 分割线
+		};
+		
+		/**
+		 * 格式化秒数
+		 * 逻辑：如果超过1小时，显示 "Xh Ym Zs"；如果不足1小时，显示 "Ym Zs"
+		 */
+		function formatDuration(seconds) {
+			if (!seconds || seconds === 0) return "0m 0s";
+			
+			const h = Math.floor(seconds / 3600);
+			const m = Math.floor((seconds % 3600) / 60);
+			const s = seconds % 60;
+			
+			if (h > 0) {
+				// 如果秒数为0，可以不显示秒，或者为了对齐始终显示
+				return s > 0 ? `${h}h ${m}m ${s}s` : `${h}h ${m}m`;
+			}
+			return `${m}m ${s}s`;
+		}
+		
+		function escapeXml(unsafe) {
+			if (!unsafe) return '';
+			return String(unsafe).replace(/[<>&'"]/g, c => {
+				const map = { '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' };
+				return map[c] || c;
+			});
+		}
+		
+		// ============ SVG 生成核心 ============
+		
+		/**
+		 * 生成单个用户卡片
+		 */
+		function generateUserCard(user, yOffset, cardWidth) {
+			const padding = 24;
+			const innerWidth = cardWidth - padding * 2;
+			
+			// 1. 计算高度
+			// 基础高度：头部(40) + 间距(16) + 数据区(60) + 间距(20)
+			let contentHeight = 40 + 16 + 70 + 20;
+			let gamesSvg = '';
+			
+			const hasGames = user.playedGame && user.playedGame.length > 0;
+			
+			if (hasGames) {
+				const gameItemHeight = 24; // 每个游戏项的高度
+				const listHeaderHeight = 24;
+				const totalGamesHeight = listHeaderHeight + (user.playedGame.length * gameItemHeight);
+				
+				// 生成游戏列表 SVG
+				const gamesList = user.playedGame.map((game, idx) => {
+					const itemY = 40 + 16 + 70 + 24 + listHeaderHeight + (idx * gameItemHeight);
+					
+					return `
+      <g transform="translate(${padding}, ${itemY})">
+        <text x="0" y="0" fill="${COLORS.textPrimary}" font-size="14" font-weight="500" dominant-baseline="hanging">
+          ${escapeXml(game.name)}
+        </text>
+        <text x="${innerWidth}" y="0" fill="${COLORS.textSecondary}" font-size="14" text-anchor="end" dominant-baseline="hanging">
+          ${formatDuration(game.duration)}
+        </text>
+      </g>`;
+				}).join('');
+				
+				gamesSvg = `
+      <!-- 分割线 -->
+      <line x1="${padding}" y1="${40 + 16 + 70}" x2="${cardWidth - padding}" y2="${40 + 16 + 70 + 12}" stroke="${COLORS.divider}" stroke-width="1" />
+      
+      <!-- 列表标题 -->
+      <text x="${padding}" y="${40 + 16 + 70 + 24}" fill="${COLORS.textSecondary}" font-size="12" font-weight="600" letter-spacing="0.05em" text-transform="uppercase" dominant-baseline="hanging">
+        最近游玩
+      </text>
+      
+      ${gamesList}
+    `;
+				
+				contentHeight += totalGamesHeight + 20; // 底部留白
+			}
+			
+			const cardHeight = contentHeight;
+			
+			return {
+				svg: `
+    <g transform="translate(0, ${yOffset})">
+      <!-- 卡片背景 -->
+      <rect x="0.5" y="0.5" width="${cardWidth - 1}" height="${cardHeight - 1}" rx="12" fill="${COLORS.card}" stroke="${COLORS.border}" stroke-width="1" />
+      
+      <!-- 1. 用户信息 -->
+      <g transform="translate(${padding}, 20)">
+        <text x="0" y="0" fill="${COLORS.textPrimary}" font-size="18" font-weight="600" dominant-baseline="hanging">
+          <tspan>
+            ${escapeXml(user.personName)}
+		  </tspan>
+		  <tspan y="9" fill="${COLORS.textMuted}" font-size="11" font-family="monospace" dominant-baseline="hanging">
+            ${escapeXml(user.steamId)}
+		  </tspan>
+        </text>
+      </g>
+
+      <!-- 2. 核心数据 (两列布局) -->
+      <g transform="translate(${padding}, 56)">
+        <!-- 左列：在线时长 -->
+        <g>
+          <text x="0" y="0" fill="${COLORS.textSecondary}" font-size="12" font-weight="500" dominant-baseline="hanging">在线时长</text>
+          <text x="0" y="24" fill="${COLORS.textPrimary}" font-size="24" font-weight="700" dominant-baseline="hanging">
+            ${formatDuration(user.onlineDuration)}
+          </text>
+        </g>
+        
+        <!-- 右列：游戏时长 -->
+        <g transform="translate(${innerWidth / 2 + 20}, 0)">
+          <text x="0" y="0" fill="${COLORS.textSecondary}" font-size="12" font-weight="500" dominant-baseline="hanging">游戏时长</text>
+          <text x="0" y="24" fill="${COLORS.textPrimary}" font-size="24" font-weight="700" dominant-baseline="hanging">
+            ${formatDuration(user.playedDuration)}
+          </text>
+        </g>
+      </g>
+
+      <!-- 3. 游戏列表 (动态生成) -->
+      ${gamesSvg}
+    </g>`,
+				height: cardHeight + 16 // 卡片间距
+			};
+		}
+		
+		/**
+		 * 主函数：生成报告
+		 */
+		function generateSteamReport(users, options = {}) {
+			const { date = "2026年3月7日", config = {} } = options;
+			const cardWidth = config.cardWidth || 500; // 默认宽一点
+			const padding = 24;
+			
+			// 标题高度
+			const headerHeight = 60;
+			
+			// 计算总高度
+			let currentY = headerHeight + padding;
+			const cardsSvg = users.map(user => {
+				const { svg, height } = generateUserCard(user, currentY, cardWidth);
+				currentY += height;
+				return svg;
+			});
+			
+			const totalHeight = currentY + padding;
+			const viewBoxWidth = cardWidth + padding * 2;
+			
+			return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${viewBoxWidth}" height="${totalHeight}"
+     viewBox="0 0 ${viewBoxWidth} ${totalHeight}"
+     fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  
+  <!-- 背景 -->
+  <rect width="${viewBoxWidth}" height="${totalHeight}" fill="${COLORS.bg}"></rect>
+  
+  <!-- 报告大标题 -->
+  <text x="${padding}" y="32" fill="${COLORS.textPrimary}" font-size="20" font-weight="700" dominant-baseline="hanging">
+    Steam 活动报告 (${escapeXml(date)})
+  </text>
+  
+  <!-- 用户卡片 -->
+  <g transform="translate(${padding}, 0)">
+    ${cardsSvg.join('\n')}
+  </g>
+  
+</svg>`.trim();
+		}
+		
+		// ============ 导出 ============
+		if (typeof module !== 'undefined') module.exports = { generateSteamReport };
+		if (typeof window !== 'undefined') window.generateSteamReport = generateSteamReport;
+		
+		const users = [
+			{
+				steamId: "76561198000000001",
+				personName: "PlayerOne",
+				onlineDuration: 45036, // 12h 30m 36s
+				playedDuration: 31836, // 8h 50m 36s
+				playedGame: [
+					{ name: "Elden Ring", duration: 7236 },
+					{ name: "Baldur's Gate 3", duration: 7236 }
+				]
+			},
+			{
+				steamId: "76561198000000002",
+				personName: "OfflineUser",
+				onlineDuration: 0,
+				playedDuration: 0
+				// 没有 playedGame，不会显示列表
+			}
+		];
+		
+		const svgString = generateSteamReport(users, {
+			date: "2026年3月7日",
+			config: { cardWidth: 500 }
+		});
+		
+		// 在浏览器中显示
+		document.body.innerHTML = svgString;
+	</script>
+</body>
+</html>
