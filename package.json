@@ -6,7 +6,7 @@
     "scripts": {
         "build": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener build",
         "deploy": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener deploy",
-        "dev": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener dev",
+        "deploy:dev": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener deploy:dev",
         "dev:webui": "pnpm --filter webui dev",
         "test": "pnpm -r test",
         "typecheck": "pnpm -r typecheck",

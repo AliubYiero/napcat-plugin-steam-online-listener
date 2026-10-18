@@ -184,24 +184,26 @@ pnpm run dev:webui
 ### 常用命令
 
 ```bash
-# 一键部署：构建 → 自动复制到远程插件目录 → 自动重载
-pnpm run push
+# 部署正式插件：构建 → 自动复制到远程插件目录 → 热重载
+pnpm run deploy
 
-# 开发模式：watch 构建 + 每次构建后自动部署 + 热重载（单进程）
-pnpm run dev
+# 开发部署：以 -dev 独立 id 部署，不覆盖远程正在运行的正式插件
+pnpm run deploy:dev
+
+# 仅前端开发：启动前端开发服务器（带代理）实时预览
+pnpm run dev:webui
 ```
 
-> `push` = `vite build`（构建完成时 Vite 插件自动部署+重载）  
-> `dev` = `vite build --watch`（每次重新构建后 Vite 插件自动部署+重载）
+> `deploy` = `vite build --mode deploy`（构建完成时 Vite 插件自动部署 + 重载）  
+> `deploy:dev` = `vite build --mode deploy-dev`（改写 `name` / `plugin` / `version` 加 `-dev` 标注，注册为独立插件）
 
 ### 构建流程说明
 
-每次执行 `pnpm run build`、`pnpm run deploy` 或 `pnpm run dev`（后端文件变化时），`vite.config.ts` 中的 `copyAssetsPlugin` 会在 `writeBundle` 阶段自动：
+每次执行 `pnpm run build`、`pnpm run deploy` 或 `pnpm run deploy:dev`（根脚本会先 `pnpm --filter webui build`），`vite.config.ts` 中的 `copyAssetsPlugin` 会在 `writeBundle` 阶段自动：
 
-1. 构建 WebUI 前端（在 `src/webui` 目录执行 `pnpm run build`）
-2. 复制 WebUI 构建产物到 `dist/webui/`
-3. 生成精简的 `dist/package.json`
-4. 复制 `templates/` 目录（如果存在）
+1. 复制 WebUI 构建产物到 `dist/webui/`
+2. 生成精简的 `dist/package.json`（dev 部署时改写 `name` / `plugin` / `version`）
+3. 复制 `templates/` 目录（如果存在）
 
 然后 `napcatHmrPlugin` 会自动：
 1. 连接调试服务（WebSocket）
@@ -210,7 +212,7 @@ pnpm run dev
 4. 复制 WebUI 产物到远程插件目录的 `webui/` 子目录
 5. 调用 `reloadPlugin` 热重载插件
 
-> **注意**：`pnpm run dev` 仅监听插件后端（`src/` 下非 webui 的文件）的变化。修改 WebUI 前端代码后，随便改动一下后端文件即可触发重新构建（每次后端构建时会自动构建并部署 WebUI）。
+> **注意**：已取消 watch 构建（无 `dev` 脚本），改动代码后需重新执行 `pnpm run deploy`（正式）或 `pnpm run deploy:dev`（开发）。
 >
 > 如果只开发 WebUI 前端，推荐使用 `pnpm run dev:webui` 启动前端开发服务器，可实时预览。
 

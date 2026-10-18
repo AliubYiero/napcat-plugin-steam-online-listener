@@ -18,6 +18,11 @@ const nodeModules = [
 // 依赖排除（如有外部依赖需排除，在此添加）
 const external: string[] = [];
 
+// dev 部署身份标注（--mode deploy-dev）
+// 以新 id 注册为独立插件, 不覆盖远程正在运行的正式插件
+const DEV_SUFFIX = '-dev';
+const DEV_NAME_PREFIX = '[DEV] ';
+
 /**
  * 递归复制目录
  */
@@ -41,9 +46,12 @@ function copyDirRecursive(src: string, dest: string) {
  * 构建后自动复制资源的 Vite 插件
  * - 复制 webui 构建产物（需先运行 webui 构建）到 dist/webui
  * - 生成精简的 package.json（只保留运行时必要字段）
+ *   dev 部署时改写 name / plugin / version 以标注开发身份
  * - 复制 templates 目录（如果存在）
+ *
+ * @param isDevDeploy 是否为 dev 部署 (--mode deploy-dev)
  */
-function copyAssetsPlugin() {
+function copyAssetsPlugin(isDevDeploy: boolean) {
     return {
         name: 'copy-assets',
         writeBundle() {
@@ -74,9 +82,16 @@ function copyAssetsPlugin() {
                         fs.readFileSync(pkgPath, 'utf-8'),
                     );
                     const distPkg: Record<string, unknown> = {
-                        name: pkg.name,
-                        plugin: pkg.plugin,
-                        version: pkg.version,
+                        name: isDevDeploy
+                            ? `${pkg.name}${DEV_SUFFIX}`
+                            : pkg.name,
+                        plugin:
+                            isDevDeploy && pkg.plugin
+                                ? `${DEV_NAME_PREFIX}${pkg.plugin}`
+                                : pkg.plugin,
+                        version: isDevDeploy
+                            ? `${pkg.version}${DEV_SUFFIX}`
+                            : pkg.version,
                         type: pkg.type,
                         main: pkg.main,
                         description: pkg.description,
@@ -93,6 +108,12 @@ function copyAssetsPlugin() {
                     console.log(
                         "[copy-assets] (o'v'o) 已生成精简 package.json",
                     );
+
+                    if (isDevDeploy) {
+                        console.log(
+                            `[copy-assets] (>'o'<) dev 身份: ${distPkg.name} (${distPkg.plugin} v${distPkg.version})`,
+                        );
+                    }
                 }
 
                 // 3. 复制 templates 目录（如果存在）
@@ -133,14 +154,18 @@ function copyAssetsPlugin() {
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, repoRoot, '');
 
-    // 热部署插件只在 --mode deploy 下挂载:
-    //   pnpm run build  → 纯构建, 不连调试服务 (无需 WS_URL / TOKEN)
-    //   pnpm run deploy → 构建 + 复制到远程 + 热重载
-    const isDeploy = mode === 'deploy';
+    // 热部署插件只在 --mode deploy / deploy-dev 下挂载:
+    //   pnpm run build      → 纯构建, 不连调试服务 (无需 WS_URL / TOKEN)
+    //   pnpm run deploy     → 构建 + 复制到远程 + 热重载 (正式 id)
+    //   pnpm run deploy:dev → 同上, 但以 -dev 新 id 部署, 不覆盖正在运行的插件
+    const isDevDeploy = mode === 'deploy-dev';
+    const isDeploy = mode === 'deploy' || isDevDeploy;
     console.log(
-        isDeploy
-            ? "[vite] (o'v'o) 部署模式: 构建完成后自动复制到远程并热重载"
-            : "[vite] (*'v'*) 构建模式: 仅产出 dist/, 需要热部署请运行 pnpm run deploy",
+        isDevDeploy
+            ? "[vite] (o'v'o) dev 部署模式: 以 -dev 新 id 构建并热重载 (不覆盖正式插件)"
+            : isDeploy
+              ? "[vite] (o'v'o) 部署模式: 构建完成后自动复制到远程并热重载"
+              : "[vite] (*'v'*) 构建模式: 仅产出 dist/, 需要热部署请运行 pnpm run deploy",
     );
 
     return {
@@ -166,7 +191,7 @@ export default defineConfig(({ mode }) => {
         },
         plugins: [
             nodeResolve(),
-            copyAssetsPlugin(),
+            copyAssetsPlugin(isDevDeploy),
             ...(isDeploy
                 ? [
                       napcatHmrPlugin({

@@ -43,11 +43,8 @@ pnpm install
 # 完整构建（后端 + 前端）
 pnpm run build
 
-# 仅构建前端
-pnpm run build:webui
-
-# 开发模式（监听文件变化并自动构建）
-pnpm run dev
+# 仅启动前端开发服务器（实时预览）
+pnpm run dev:webui
 ```
 
 ### 3. 配置插件
@@ -232,11 +229,11 @@ napcat-plugin-steam-online-listener/
 ### 调试与热重载
 
 ```bash
-# 一键部署（需安装 napcat-plugin-debug-cli）
+# 一键部署正式版本（需安装 napcat-plugin-debug-cli）
 pnpm run deploy
 
-# 开发模式（监听文件变化并自动部署）
-pnpm run dev
+# 以 -dev 独立身份部署（注册为独立插件 id，不覆盖远程正在运行的正式插件）
+pnpm run deploy:dev
 ```
 
 ### 测试
@@ -245,11 +242,11 @@ pnpm run dev
 # 运行测试
 pnpm run test
 
-# 测试监听模式
-pnpm run test:watch
-
 # 类型检查
 pnpm run typecheck
+
+# 类型检查 + 测试
+pnpm run check
 ```
 
 ## 注意事项
