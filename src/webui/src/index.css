@@ -104,14 +104,16 @@ body {
 }
 
 /* ========== Input ========== */
-.input-field {
-    @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e1e20] text-gray-900 dark:text-white text-sm;
-    transition: border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
-}
-
-.input-field:focus {
-    @apply outline-none border-primary;
-    box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.15);
+@layer components {
+    .input-field {
+        @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e1e20] text-gray-900 dark:text-white text-sm;
+        transition: border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+    }
+    
+    .input-field:focus {
+        @apply outline-none border-primary;
+        box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.15);
+    }
 }
 
 /* ========== Button ========== */
