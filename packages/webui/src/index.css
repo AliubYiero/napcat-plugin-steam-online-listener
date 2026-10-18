@@ -122,6 +122,39 @@ body {
         @apply outline-none border-primary;
         box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.15);
     }
+
+    /* 密码框掩码: 只对非 type=password 的字段生效, 用于自建密码框 (见 PasswordField.tsx) */
+    .password-mask {
+        -webkit-text-security: disc;
+    }
+}
+
+/* ========== Tag Input / Chip ========== */
+@layer components {
+    .tag-input {
+        @apply flex flex-wrap items-center gap-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e1e20] text-sm cursor-text;
+        transition:
+            border-color 0.2s var(--ease-smooth),
+            box-shadow 0.2s var(--ease-smooth);
+    }
+
+    .tag-input:focus-within {
+        @apply border-primary;
+        box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.15);
+    }
+
+    .tag-input input {
+        @apply flex-1 min-w-[6rem] p-0 border-none outline-none bg-transparent text-gray-900 dark:text-white text-sm;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full;
+    }
+
+    .chip-remove {
+        @apply inline-flex items-center justify-center p-0 border-none bg-transparent cursor-pointer text-primary/70 hover:text-red-500;
+        transition: color 0.15s var(--ease-smooth);
+    }
 }
 
 /* ========== Button ========== */

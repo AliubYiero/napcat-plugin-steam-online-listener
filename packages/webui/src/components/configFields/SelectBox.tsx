@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { IconCheck, IconChevronDown } from '../Icons';
+import Chip from './Chip';
 
 export interface SelectBoxOption {
     label: string;
@@ -23,7 +24,8 @@ interface SelectBoxProps {
  * 结构对齐 WebUI 其它自建控件: 标题 / 描述 / 控件 纵向排列, 标题不放进框内。
  * 触发框复用 `.input-field` 外观 + 右侧箭头; 点开弹出 listbox, 选项右侧带勾选标记
  * (下拉交互对齐 NapCat 原生面板的 select)。多选在同一面板内勾选,
- * 提交顺序按 options 声明顺序回填 (与后端清洗结果一致)。
+ * 触发框以胶囊展示已选项 (点胶囊 X 直接移除), 提交顺序按 options 声明顺序回填
+ * (与后端清洗结果一致)。
  */
 export default function SelectBox({
     label,
@@ -58,10 +60,10 @@ export default function SelectBox({
         };
     }, [open]);
 
-    const selectedLabels = options
-        .filter((option) => value.includes(option.value))
-        .map((option) => option.label);
-    const filled = selectedLabels.length > 0;
+    const selectedOptions = options.filter((option) =>
+        value.includes(option.value),
+    );
+    const filled = selectedOptions.length > 0;
 
     const select = (optionValue: string | number) => {
         if (multiple) {
@@ -91,21 +93,50 @@ export default function SelectBox({
                 </div>
             )}
             <div ref={rootRef} className="relative">
-                <button
-                    type="button"
-                    onClick={() => setOpen((prev) => !prev)}
+                {/* biome-ignore lint/a11y/useSemanticElements: 触发框内含可移除胶囊 (嵌套 button), 不能改为 button; 已补 role/tabIndex/键盘处理 */}
+                <div
+                    role="button"
+                    tabIndex={0}
                     aria-haspopup="listbox"
                     aria-expanded={open}
+                    onClick={() => setOpen((prev) => !prev)}
+                    onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget)
+                            return;
+                        if (
+                            event.key === 'Enter' ||
+                            event.key === ' '
+                        ) {
+                            event.preventDefault();
+                            setOpen((prev) => !prev);
+                        } else if (event.key === 'Escape') {
+                            setOpen(false);
+                        }
+                    }}
                     className="input-field flex items-center justify-between gap-2 cursor-pointer text-left"
                 >
-                    <span
-                        className={`truncate ${
-                            filled ? '' : 'text-gray-400'
-                        }`}
-                    >
-                        {filled
-                            ? selectedLabels.join(', ')
-                            : placeholder}
+                    <span className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                        {filled ? (
+                            multiple ? (
+                                selectedOptions.map((option) => (
+                                    <Chip
+                                        key={String(option.value)}
+                                        label={option.label}
+                                        onRemove={() =>
+                                            select(option.value)
+                                        }
+                                    />
+                                ))
+                            ) : (
+                                <span className="truncate">
+                                    {selectedOptions[0].label}
+                                </span>
+                            )
+                        ) : (
+                            <span className="text-gray-400">
+                                {placeholder}
+                            </span>
+                        )}
                     </span>
                     <IconChevronDown
                         size={16}
@@ -113,7 +144,7 @@ export default function SelectBox({
                             open ? 'rotate-180' : ''
                         }`}
                     />
-                </button>
+                </div>
 
                 {open && (
                     <div className="absolute left-0 right-0 top-full mt-1 z-50 p-1 max-h-64 overflow-y-auto bg-white dark:bg-[#1e1e20] border border-gray-100 dark:border-gray-800 rounded-lg shadow-lg animate-scale-in">

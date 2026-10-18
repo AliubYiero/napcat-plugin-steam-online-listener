@@ -7,7 +7,7 @@
 
 import { DEFAULT_PAGE } from 'shared';
 import { describe, expect, it } from 'vitest';
-import { buildHash, parsePage } from '../src/utils/pageRoute';
+import { buildHash, parsePage } from '../../src/utils/pageRoute';
 
 describe('parsePage', () => {
     it('解析合法页面 id', () => {

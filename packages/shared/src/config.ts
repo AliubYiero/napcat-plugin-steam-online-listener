@@ -416,14 +416,14 @@ function sanitizeValue(
 }
 
 /**
- * stringList codec: 逗号分隔文本 → 去空项数组
+ * stringList codec: 逗号 / 换行分隔文本 → 去空项数组
  *
- * 与 webui 的标签/文本框输入共用, 是前后端一致的唯一定义。
- * 【限制】不支持含逗号的值 (QQ 号等场景不含逗号)。
+ * 与 webui 的标签输入共用, 是前后端一致的唯一定义。
+ * 分隔符为逗号或换行; 【限制】不支持值本身含逗号 / 换行 (QQ 号等场景不涉及)。
  */
 export function parseStringList(input: string): string[] {
     return input
-        .split(',')
+        .split(/[,\n\r]+/)
         .map((item) => item.trim())
         .filter((item) => item.length > 0);
 }

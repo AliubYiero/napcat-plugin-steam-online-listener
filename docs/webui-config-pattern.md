@@ -43,12 +43,12 @@ FIELDS (字段描述符, ctx-free 纯数据, 放共享包)
 | `password`    | 同 `text`                       | 跳转引导      | 密码框       |
 | `number`      | `typeof` + 区间钳制, 回退默认   | 数字框       | 数字框       |
 | `select`      | 必须命中 options, 否则回退默认  | 下拉单选     | 下拉单选     |
-| `multiSelect` | 过滤非法值; **空数组合法**      | 下拉多选     | 复选         |
-| `stringList`  | 逗号串/数组 → 去空项数组        | 逗号文本框   | 逗号文本框   |
+| `multiSelect` | 过滤非法值; **空数组合法**      | 下拉多选     | 下拉多选·胶囊 |
+| `stringList`  | 逗号串/数组 → 去空项数组        | 逗号文本框   | 标签输入     |
 
-`stringList` 是吸收"文本控件收集字符串、逻辑字段却是数组"这一常见落差的关键 kind: 它的 codec (逗号分隔 → `trim` → 去空项) 是前后端**唯一定义** (前端导入共享包的 `parseStringList`, 后端清洗复用同一函数)。**限制**: 不支持含逗号的值; 仅适用于 QQ 号、简单枚举等场景。
+`stringList` 是吸收"文本控件收集字符串、逻辑字段却是数组"这一常见落差的关键 kind: 前端以**标签输入**呈现 (胶囊可增删), 后端原生面板降级为逗号文本框。它的 codec (逗号 / 换行分隔 → `trim` → 去空项) 是前后端**唯一定义** (前端提交与标签拆分复用共享包的 `parseStringList`, 后端清洗复用同一函数)。**限制**: 不支持值本身含逗号 / 换行; 仅适用于 QQ 号、简单枚举等场景。
 
-`password` 与 `text` 语义相同 (清洗、落盘、默认值形态一致), 差别在前端渲染为密码框 (带显示/隐藏切换)。原生面板无密码控件, 故它的 `scope` 收窄为 `webui` / `both`: `webui` 仅自建前端显示; `both` (缺省) 在自建前端显示密码框、在原生面板显示"前往拓展页面修改"的引导块 (`buildPasswordPanelHint`, 仅展示不落值)。**警告**: 它**不脱敏**——密钥明文落盘并明文往返浏览器, 仅适用于对安全性要求不高的场景; 需要掩码/留空即保留的契约请自行在覆盖注册表与后端 API 层实现。
+`password` 与 `text` 语义相同 (清洗、落盘、默认值形态一致), 差别在前端渲染为密码框 (带显示/隐藏切换)。【实现】该密码框为**自建**实现: 有意用 `type="text"` + CSS `-webkit-text-security` 掩码 (见 `PasswordField.tsx` 与 `index.css` 的 `.password-mask`), 并附 `autoComplete="off"` 与各密码管理器忽略标记, 以规避浏览器密码管理器对 `type="password"` 弹出的自动填充列表 / "保存密码" 提示 / 钥匙图标; **勿改回 `type="password"`**。原生面板无密码控件, 故它的 `scope` 收窄为 `webui` / `both`: `webui` 仅自建前端显示; `both` (缺省) 在自建前端显示密码框、在原生面板显示"前往拓展页面修改"的引导块 (`buildPasswordPanelHint`, 仅展示不落值)。**警告**: 它**不脱敏**——密钥明文落盘并明文往返浏览器, 仅适用于对安全性要求不高的场景; 需要掩码/留空即保留的契约请自行在覆盖注册表与后端 API 层实现。
 
 ### 布局与展示字段
 
@@ -84,7 +84,7 @@ token 常量与解析纯函数 (`resolveDisplayContent`) 统一在共享包; 【
 
 ### 逃生舱: 覆盖注册表
 
-内置 kind 覆盖绝大多数需求; 需要定制交互 (如"一键测试联通"按钮、带校验的标签编辑器) 时, 前端提供**按字段 key 覆盖的组件注册表**:
+内置 kind 覆盖绝大多数需求; 需要定制交互 (如"一键测试联通"按钮、自定义复合控件) 时, 前端提供**按字段 key 覆盖的组件注册表**:
 
 - 覆盖组件只改**前端呈现**, **不得改变清洗语义** (清洗仍由 kind 派生, 后端不变)。
 - 字段仍必须声明一个 base kind, 供宿主原生面板降级渲染。
@@ -123,6 +123,7 @@ token 常量与解析纯函数 (`resolveDisplayContent`) 统一在共享包; 【
 - [ ] 【应该】枚举类字段: 候选值抽常量, 描述符与清洗共用同一来源
 - [ ] 【应该】若字段只需在某一个界面出现: 声明 `scope` (`webui` / `panel`)
 - [ ] 【必须】确认 `satisfies` 与键集单测通过 (无需改后端映射与前端表单)
+- [ ] 【应该】新增 / 改动字段控件: 在 `packages/webui/test/components/configFields/` 补一条组件行为测试 (范式样本)
 - [ ] 【应该】若语义有默认值选择 (尤其启用开关): 在 `CONTEXT.md` 声明, 必要时补 ADR
 
 ### 新增一个 WebUI 页面
@@ -139,4 +140,6 @@ token 常量与解析纯函数 (`resolveDisplayContent`) 统一在共享包; 【
 
 ## 参考实现
 
-本项目: 声明源与派生见 `packages/shared/src/config.ts` (`FIELDS` / `PluginConfig` / `COMMAND_PREFIX` / `getDefaultConfig` / `sanitizeConfig` / `parseStringList`) 与 `packages/shared/src/ui.ts` (`PAGES` / `DEFAULT_PAGE`); 展示块占位符见 `packages/shared/src/displayTokens.ts` (`resolveDisplayContent`); 后端映射 (含 scope 过滤与占位符解析) 见 `packages/plugin/src/config.ts` 的 `buildConfigSchema`; 前端渲染见 `packages/webui/src/components/ConfigForm.tsx` 与 `packages/webui/src/pages/StatusPage.tsx` (仪表盘页内嵌配置表单); 骨架消费见 `packages/webui/src/App.tsx` 与 `packages/webui/src/components/Sidebar.tsx`; URL 路由见 `packages/webui/src/hooks/usePageRoute.ts` (hook) 与 `packages/webui/src/utils/pageRoute.ts` (`parsePage` / `buildHash`)。
+本项目: 声明源与派生见 `packages/shared/src/config.ts` (`FIELDS` / `PluginConfig` / `COMMAND_PREFIX` / `getDefaultConfig` / `sanitizeConfig` / `parseStringList`) 与 `packages/shared/src/ui.ts` (`PAGES` / `DEFAULT_PAGE`); 展示块占位符见 `packages/shared/src/displayTokens.ts` (`resolveDisplayContent`); 后端映射 (含 scope 过滤与占位符解析) 见 `packages/plugin/src/config.ts` 的 `buildConfigSchema`; 前端渲染见 `packages/webui/src/components/ConfigForm.tsx` 与 `packages/webui/src/pages/StatusPage.tsx` (仪表盘页内嵌配置表单); 骨架消费见 `packages/webui/src/App.tsx` 与 `packages/webui/src/components/Sidebar.tsx`; URL 路由见 `packages/webui/src/hooks/usePageRoute.ts` (hook) 与 `packages/webui/src/utils/pageRoute.ts` (`parsePage` / `buildHash`); 标签输入控件与拆纯函数见 `packages/webui/src/components/configFields/StringListField.tsx`、`packages/webui/src/components/configFields/Chip.tsx` 与 `packages/webui/src/utils/tagList.ts`; 密码框 (自建掩码实现, 规避浏览器密码管理器) 见 `packages/webui/src/components/configFields/PasswordField.tsx`。
+
+组件测试: 组件用例按 `src/` 镜像布局放在 `packages/webui/test/` (纯函数在 `test/utils/`, 字段控件在 `test/components/configFields/`: `SelectBox` / `StringListField` / `MultiSelectField` / `Chip` / `PasswordField`), 文件顶 `// @vitest-environment happy-dom` 覆盖环境, 经 `packages/webui/test/setup.ts` 统一挂 jest-dom 与清理, 并在 `packages/webui/vitest.config.ts` 注入构建期插件身份。
