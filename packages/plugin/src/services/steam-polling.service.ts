@@ -322,15 +322,16 @@ class SteamPollingService {
         const customNickname =
             fromInfo.nickname || change.newStatus.personaname;
         const timestamp = new Date().toLocaleString('zh-CN');
+        const quote = (s?: string | null) => (s ? `「${s}」` : '');
 
-        let message = `[${timestamp}] ${customNickname}`;
+        let message = `[${timestamp}] ${quote(customNickname)}`;
 
         switch (change.changeType) {
             case 'online':
-                message += ' 上线了';
+                message += '上线了';
                 break;
             case 'offline':
-                message += ' 离线了';
+                message += '离线了';
                 break;
             case 'ingame':
                 if (
@@ -342,11 +343,11 @@ class SteamPollingService {
                             change.newStatus.gameid,
                             change.newStatus.gameextrainfo,
                         );
-                    message += ` 正在游玩 ${formattedGameName}`;
+                    message += `正在游玩${quote(formattedGameName)}`;
                 } else if (change.newStatus.gameextrainfo) {
-                    message += ` 正在游玩 ${change.newStatus.gameextrainfo}`;
+                    message += `正在游玩${quote(change.newStatus.gameextrainfo)}`;
                 } else {
-                    message += ' 开始玩游戏了';
+                    message += '开始玩游戏了';
                 }
                 break;
             case 'outgame': {
@@ -361,7 +362,7 @@ class SteamPollingService {
                         );
                     if (formatGameName) gameName = formatGameName;
                 }
-                message += ` 结束游玩 ${gameName}`;
+                message += `结束游玩${quote(gameName)}`;
                 // 如果有游戏开始时间，计算并显示游玩时长
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
@@ -372,7 +373,7 @@ class SteamPollingService {
                 break;
             }
             case 'inAfk': {
-                message += ' 开始挂机';
+                message += '开始挂机';
                 if (
                     change.newStatus.gameextrainfo &&
                     change.newStatus.gameid
@@ -382,14 +383,14 @@ class SteamPollingService {
                             change.newStatus.gameid,
                             change.newStatus.gameextrainfo,
                         );
-                    message += ` - ${formattedGameName}`;
+                    message += ` - ${quote(formattedGameName)}`;
                 } else if (change.newStatus.gameextrainfo) {
-                    message += ` - ${change.newStatus.gameextrainfo}`;
+                    message += ` - ${quote(change.newStatus.gameextrainfo)}`;
                 }
                 break;
             }
             case 'outAfk': {
-                message += ' 结束挂机';
+                message += '结束挂机';
                 if (
                     change.newStatus.gameextrainfo &&
                     change.newStatus.gameid
@@ -399,9 +400,9 @@ class SteamPollingService {
                             change.newStatus.gameid,
                             change.newStatus.gameextrainfo,
                         );
-                    message += ` - ${formattedGameName}`;
+                    message += ` - ${quote(formattedGameName)}`;
                 } else if (change.newStatus.gameextrainfo) {
-                    message += ` - ${change.newStatus.gameextrainfo}`;
+                    message += ` - ${quote(change.newStatus.gameextrainfo)}`;
                 }
                 break;
             }
@@ -416,7 +417,7 @@ class SteamPollingService {
                         );
                     if (formatGameName) gameName = formatGameName;
                 }
-                message += ` 结束游玩并下线 ${gameName}`;
+                message += `结束游玩并下线${quote(gameName)}`;
                 // 如果有游戏开始时间，计算并显示游玩时长
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
@@ -453,7 +454,7 @@ class SteamPollingService {
                     if (formatNewGameName)
                         newGameName = formatNewGameName;
                 }
-                message += ` 结束游玩 ${oldGameName}`;
+                message += `结束游玩${quote(oldGameName)}`;
                 // 如果有游戏开始时间，计算并显示旧游戏的游玩时长
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
@@ -461,13 +462,13 @@ class SteamPollingService {
                     );
                     message += `（游玩时长：${playTimeStr}）`;
                 }
-                message += `，开始游玩 ${newGameName}`;
+                message += `，开始游玩${quote(newGameName)}`;
                 break;
             }
             default:
-                message += ` 状态更新: ${steamService.formatPlayerState(change.newStatus.personastate)}`;
+                message += `状态更新: ${steamService.formatPlayerState(change.newStatus.personastate)}`;
                 if (change.newStatus.gameextrainfo) {
-                    message += ` - ${change.newStatus.gameextrainfo}`;
+                    message += ` - ${quote(change.newStatus.gameextrainfo)}`;
                 }
                 break;
         }

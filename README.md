@@ -134,8 +134,8 @@ pnpm run dev
 状态变化时的推送消息格式如下：
 
 ```
-[2026-02-22 14:30:00] PlayerName 正在游玩 Counter-Strike 2
-[2026-02-22 15:45:00] PlayerName 结束游玩 Counter-Strike 2（游玩时长：1小时15分钟）
+[2026-02-22 14:30:00] 「PlayerName」正在游玩「Counter-Strike 2」
+[2026-02-22 15:45:00] 「PlayerName」结束游玩「Counter-Strike 2」（游玩时长：1小时15分钟）
 ```
 
 支持的状态类型：
