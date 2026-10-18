@@ -15,8 +15,12 @@ import type {
     TimelineLog,
     TimelineLogEntry,
 } from '../types';
-import { escapeXml, renderSvgToBase64 } from '../utils/svg-render';
+import { escapeXml } from '../utils/svg-render';
 import { gameNameService } from './game-name.service.js';
+import {
+    RENDER_FONT_FAMILY,
+    svgRenderService,
+} from './svg-render.service';
 
 // ==================== 常量 ====================
 
@@ -43,6 +47,29 @@ const COLORS = {
     divider: '#f3f4f6',
 };
 
+/** 卡片内外边距 = 页面外边距 */
+const CARD_PADDING = 24;
+/** 游戏名与时长之间的间距 */
+const GAME_NAME_GAP = 24;
+/** 卡片默认最小宽度 */
+const MIN_CARD_WIDTH = 500;
+/** 整图最大宽度 */
+const MAX_TOTAL_WIDTH = 2000;
+/** 时长背景条的左侧外溢量 */
+const TIME_BG_OVERFLOW = 8;
+/** 文本测量并发上限 */
+const MEASURE_CONCURRENCY = 8;
+
+/** 日报文本样式 (测量用) */
+const TEXT_STYLE = {
+    title: { fontSize: 20, fontWeight: 700 },
+    nickname: { fontSize: 18, fontWeight: 600 },
+    statLabel: { fontSize: 12, fontWeight: 500 },
+    statValue: { fontSize: 24, fontWeight: 700 },
+    gameName: { fontSize: 14, fontWeight: 500 },
+    gameTime: { fontSize: 14, fontWeight: 400 },
+} as const;
+
 /**
  * 格式化秒数为可读时长
  */
@@ -62,12 +89,12 @@ function formatDuration(seconds: number): string {
 /**
  * 生成单个用户卡片 SVG
  */
-function generateUserCard(
+async function generateUserCard(
     user: ReportUser,
     yOffset: number,
     cardWidth: number,
-): { svg: string; height: number } {
-    const padding = 24;
+): Promise<{ svg: string; height: number }> {
+    const padding = CARD_PADDING;
     const innerWidth = cardWidth - padding * 2;
 
     let contentHeight = 40 + 16 + 70 + 20;
@@ -82,31 +109,49 @@ function generateUserCard(
         const totalGamesHeight =
             listHeaderHeight + playedGame.length * gameItemHeight;
 
-        const gamesList = playedGame
-            .map((game, idx) => {
-                const itemY =
-                    40 +
-                    16 +
-                    70 +
-                    24 +
-                    listHeaderHeight +
-                    idx * gameItemHeight;
+        const dividerY = 40 + 16 + 70;
 
-                return `
+        const gamesList = (
+            await mapWithConcurrency(
+                playedGame,
+                MEASURE_CONCURRENCY,
+                async (game, idx) => {
+                    const itemY =
+                        dividerY +
+                        24 +
+                        listHeaderHeight +
+                        idx * gameItemHeight;
+
+                    const timeText = formatDuration(game.duration);
+                    const timeWidth =
+                        await svgRenderService.calculateTextWidth(
+                            timeText,
+                            TEXT_STYLE.gameTime,
+                        );
+                    const nameText =
+                        await svgRenderService.truncateToWidth(
+                            game.name,
+                            innerWidth - timeWidth - GAME_NAME_GAP,
+                            TEXT_STYLE.gameName,
+                        );
+
+                    return `
       <g transform="translate(${padding}, ${itemY})">
         <text x="0" y="0" fill="${COLORS.textPrimary}" font-size="14" font-weight="500" dominant-baseline="hanging">
-          ${escapeXml(game.name)}
+          ${escapeXml(nameText)}
         </text>
+        <rect x="${innerWidth - timeWidth - TIME_BG_OVERFLOW}" y="-2" width="${timeWidth + TIME_BG_OVERFLOW}" height="20" fill="${COLORS.card}" />
         <text x="${innerWidth}" y="0" fill="${COLORS.textSecondary}" font-size="14" text-anchor="end" dominant-baseline="hanging">
-          ${formatDuration(game.duration)}
+          ${escapeXml(timeText)}
         </text>
       </g>`;
-            })
-            .join('');
+                },
+            )
+        ).join('');
 
         gamesSvg = `
-      <line x1="${padding}" y1="${40 + 16 + 70}" x2="${cardWidth - padding}" y2="${40 + 16 + 70 + 12}" stroke="${COLORS.divider}" stroke-width="1" />
-      <text x="${padding}" y="${40 + 16 + 70 + 24}" fill="${COLORS.textSecondary}" font-size="12" font-weight="600" letter-spacing="0.05em" dominant-baseline="hanging">
+      <line x1="${padding}" y1="${dividerY}" x2="${cardWidth - padding}" y2="${dividerY}" stroke="${COLORS.divider}" stroke-width="1" />
+      <text x="${padding}" y="${dividerY + 24}" fill="${COLORS.textSecondary}" font-size="12" font-weight="600" letter-spacing="0.05em" dominant-baseline="hanging">
         最近游玩
       </text>
       ${gamesList}
@@ -152,27 +197,134 @@ function generateUserCard(
 }
 
 /**
+ * 以受控并发执行异步映射, 保持结果顺序
+ */
+async function mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+    const results = new Array<R>(items.length);
+    let cursor = 0;
+
+    async function worker(): Promise<void> {
+        while (cursor < items.length) {
+            const index = cursor;
+            cursor += 1;
+            results[index] = await fn(items[index], index);
+        }
+    }
+
+    const workerCount = Math.min(limit, items.length);
+    await Promise.all(
+        Array.from({ length: workerCount }, () => worker()),
+    );
+
+    return results;
+}
+
+/**
+ * 依据所有用户的游戏行与文本内容计算卡片宽度
+ * 取全局最大值, 并限制在最大整图宽度内
+ */
+async function computeCardWidth(
+    users: ReportUser[],
+    date: string,
+): Promise<number> {
+    const titleWidth = await svgRenderService.calculateTextWidth(
+        `Steam 活动报告 (${date})`,
+        TEXT_STYLE.title,
+    );
+
+    let innerReq = 0;
+
+    for (const user of users) {
+        const nicknameLine = user.fromNickname
+            ? `${user.personName} (${user.fromNickname})`
+            : user.personName;
+        innerReq = Math.max(
+            innerReq,
+            await svgRenderService.calculateTextWidth(
+                nicknameLine,
+                TEXT_STYLE.nickname,
+            ),
+        );
+
+        const leftWidth = Math.max(
+            await svgRenderService.calculateTextWidth(
+                '在线时长',
+                TEXT_STYLE.statLabel,
+            ),
+            await svgRenderService.calculateTextWidth(
+                formatDuration(user.onlineDuration),
+                TEXT_STYLE.statValue,
+            ),
+        );
+        const rightWidth = Math.max(
+            await svgRenderService.calculateTextWidth(
+                '游戏时长',
+                TEXT_STYLE.statLabel,
+            ),
+            await svgRenderService.calculateTextWidth(
+                formatDuration(user.playedDuration),
+                TEXT_STYLE.statValue,
+            ),
+        );
+        innerReq = Math.max(
+            innerReq,
+            leftWidth,
+            2 * (rightWidth + 20),
+        );
+
+        for (const game of user.playedGame ?? []) {
+            const rowWidth =
+                (await svgRenderService.calculateTextWidth(
+                    game.name,
+                    TEXT_STYLE.gameName,
+                )) +
+                GAME_NAME_GAP +
+                (await svgRenderService.calculateTextWidth(
+                    formatDuration(game.duration),
+                    TEXT_STYLE.gameTime,
+                ));
+            innerReq = Math.max(innerReq, rowWidth);
+        }
+    }
+
+    return Math.min(
+        Math.max(
+            MIN_CARD_WIDTH,
+            titleWidth,
+            innerReq + CARD_PADDING * 2,
+        ),
+        MAX_TOTAL_WIDTH - CARD_PADDING * 2,
+    );
+}
+
+/**
  * 生成完整的 Steam 活动报告 SVG
  */
-function generateSteamReport(
+export async function generateSteamReport(
     users: ReportUser[],
-    options: { date?: string; config?: { cardWidth?: number } } = {},
-): string {
-    const { date = '', config = {} } = options;
-    const cardWidth = config.cardWidth || 500;
-    const padding = 24;
+    options: { date?: string } = {},
+): Promise<string> {
+    const { date = '' } = options;
+    const padding = CARD_PADDING;
     const headerHeight = 60;
 
+    const cardWidth = await computeCardWidth(users, date);
+
     let currentY = headerHeight + padding;
-    const cardsSvg = users.map((user) => {
-        const { svg, height } = generateUserCard(
+    const cardsSvg: string[] = [];
+    for (const user of users) {
+        const { svg, height } = await generateUserCard(
             user,
             currentY,
             cardWidth,
         );
         currentY += height;
-        return svg;
-    });
+        cardsSvg.push(svg);
+    }
 
     const totalHeight = currentY + padding;
     const viewBoxWidth = cardWidth + padding * 2;
@@ -181,7 +333,7 @@ function generateSteamReport(
 <svg width="${viewBoxWidth}" height="${totalHeight}"
      viewBox="0 0 ${viewBoxWidth} ${totalHeight}"
      fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+     style="font-family: ${RENDER_FONT_FAMILY};">
   <!-- 背景 -->
   <rect width="${viewBoxWidth}" height="${totalHeight}" fill="${COLORS.bg}"></rect>
   <text x="${padding}" y="32" fill="${COLORS.textPrimary}" font-size="20" font-weight="700" dominant-baseline="hanging">
@@ -525,12 +677,11 @@ class SteamReportService {
         try {
             if (users.length === 0) return;
 
-            const svg = generateSteamReport(users, {
+            const svg = await generateSteamReport(users, {
                 date: dateLabel,
-                config: { cardWidth: 500 },
             });
 
-            const base64 = await renderSvgToBase64(svg);
+            const base64 = await svgRenderService.renderSvg(svg);
 
             if (!base64) {
                 pluginState.logger.warn(
