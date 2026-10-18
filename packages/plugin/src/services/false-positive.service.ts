@@ -14,8 +14,11 @@
  */
 
 import { pluginState } from '../core/state';
-import type { StatusChange, StatusChanges } from './steam-cache.service';
 import type { SteamPlayerSummary } from './steam.service';
+import type {
+    StatusChange,
+    StatusChanges,
+} from './steam-cache.service';
 
 // ==================== 数据结构 ====================
 

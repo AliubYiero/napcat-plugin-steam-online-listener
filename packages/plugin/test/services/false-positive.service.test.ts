@@ -14,8 +14,8 @@ vi.mock('../../utils/format', () => ({
 }));
 
 import { falsePositiveService } from '../../src/services/false-positive.service';
-import { steamCacheService } from '../../src/services/steam-cache.service';
 import type { SteamPlayerSummary } from '../../src/services/steam.service';
+import { steamCacheService } from '../../src/services/steam-cache.service';
 import { pluginStateStub } from '../helpers/plugin-state-mock';
 import {
     inGamePlayer,
@@ -102,7 +102,8 @@ describe('FalsePositiveService', () => {
             expect(res.confirmed[0].changeType).toBe('quitGame');
             expect(res.frozenSteamIds.has('123')).toBe(false);
             expect(
-                steamCacheService.getCurrentCache()['123'].personastate,
+                steamCacheService.getCurrentCache()['123']
+                    .personastate,
             ).toBe(0);
         });
 
@@ -113,9 +114,7 @@ describe('FalsePositiveService', () => {
             ]);
 
             poll([offlinePlayer('123')]);
-            const res = poll([
-                inGamePlayer('123', 'Dota 2', '570'),
-            ]);
+            const res = poll([inGamePlayer('123', 'Dota 2', '570')]);
 
             expect(res.confirmed).toHaveLength(0);
             expect(res.frozenSteamIds.size).toBe(0);
@@ -136,21 +135,17 @@ describe('FalsePositiveService', () => {
             ]);
 
             poll([inGamePlayer('123', 'CS2', '730')]);
-            const res2 = poll([
-                inGamePlayer('123', 'TF2', '440'),
-            ]);
+            const res2 = poll([inGamePlayer('123', 'TF2', '440')]);
             expect(res2.confirmed).toHaveLength(0);
             expect(falsePositiveService.hasPending('123')).toBe(true);
 
-            const res3 = poll([
-                inGamePlayer('123', 'TF2', '440'),
-            ]);
+            const res3 = poll([inGamePlayer('123', 'TF2', '440')]);
             expect(res3.confirmed).toHaveLength(1);
             expect(res3.confirmed[0].changeType).toBe('switchGame');
             // 确认文案的旧状态为最初基准, 而非中间状态
-            expect(
-                res3.confirmed[0].oldStatus?.gameextrainfo,
-            ).toBe('Dota 2');
+            expect(res3.confirmed[0].oldStatus?.gameextrainfo).toBe(
+                'Dota 2',
+            );
         });
     });
 
@@ -207,18 +202,14 @@ describe('FalsePositiveService', () => {
 
         it('确认的游戏变化回填 gameStartTime', () => {
             setThreshold(1);
-            steamCacheService.updateCacheBatch([
-                onlinePlayer('123'),
-            ]);
+            steamCacheService.updateCacheBatch([onlinePlayer('123')]);
 
             const nowSpy = vi.spyOn(Date, 'now');
             nowSpy.mockReturnValue(1000);
             poll([inGamePlayer('123', 'CS2', '730')]);
 
             nowSpy.mockReturnValue(2000);
-            const res = poll([
-                inGamePlayer('123', 'CS2', '730'),
-            ]);
+            const res = poll([inGamePlayer('123', 'CS2', '730')]);
             expect(res.confirmed).toHaveLength(1);
             expect(
                 steamCacheService.getCurrentCache()['123']
