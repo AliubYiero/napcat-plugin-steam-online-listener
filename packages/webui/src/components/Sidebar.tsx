@@ -50,7 +50,8 @@ export default function Sidebar({
                         {__PLUGIN_ID__
                             .split(/[-_]/g)
                             .join(' ')
-                            .toLocaleUpperCase()}
+                            .toLocaleUpperCase()
+                            .replace(/NAPCAT PLUGIN\s?/, '')}
                     </p>
                 </div>
             </div>
