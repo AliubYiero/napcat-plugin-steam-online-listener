@@ -37,12 +37,12 @@
   },
   "scripts": {
     "build": "vite build",
+    "watch": "vite build --watch",
+    "deploy": "vite build --mode deploy",
     "build:webui": "cd src/webui && pnpm install && pnpm run build",
     "dev:webui": "cd src/webui && pnpm run dev",
-    "watch": "vite build --watch",
     "dev": "vite build --watch",
     "push": "vite build",
-    "deploy": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
