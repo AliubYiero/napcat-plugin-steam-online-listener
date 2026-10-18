@@ -195,6 +195,7 @@ body {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: 该规则仅设置 width，与上方 :checked 规则的 transform/box-shadow 不重叠，无层叠冲突 */
 .toggle:active .slider::after {
     width: 18px;
 }

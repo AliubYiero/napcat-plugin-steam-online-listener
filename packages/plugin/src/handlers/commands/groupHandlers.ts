@@ -29,7 +29,7 @@ export const groupAddHandler: InstructionHandler = async (
     }
 
     const groupId = commands[0];
-    if (!groupId || isNaN(Number(groupId))) {
+    if (!groupId || Number.isNaN(Number(groupId))) {
         await sendReply(ctx, event, '请输入有效的群号');
         return;
     }
@@ -58,7 +58,7 @@ export const groupRemoveHandler: InstructionHandler = async (
     }
 
     const groupId = commands[0];
-    if (!groupId || isNaN(Number(groupId))) {
+    if (!groupId || Number.isNaN(Number(groupId))) {
         await sendReply(ctx, event, '请输入有效的群号');
         return;
     }

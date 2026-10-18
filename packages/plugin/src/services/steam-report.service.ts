@@ -73,17 +73,17 @@ function generateUserCard(
     let contentHeight = 40 + 16 + 70 + 20;
     let gamesSvg = '';
 
-    const hasGames = user.playedGame && user.playedGame.length > 0;
+    const playedGame = user.playedGame ?? [];
+    const hasGames = playedGame.length > 0;
 
     if (hasGames) {
         const gameItemHeight = 24;
         const listHeaderHeight = 24;
         const totalGamesHeight =
-            listHeaderHeight +
-            user.playedGame!.length * gameItemHeight;
+            listHeaderHeight + playedGame.length * gameItemHeight;
 
-        const gamesList = user
-            .playedGame!.map((game, idx) => {
+        const gamesList = playedGame
+            .map((game, idx) => {
                 const itemY =
                     40 +
                     16 +
@@ -280,10 +280,12 @@ class SteamReportService {
 
         for (const entry of log.d) {
             const steamId = entry[0];
-            if (!map.has(steamId)) {
-                map.set(steamId, []);
+            let bucket = map.get(steamId);
+            if (!bucket) {
+                bucket = [];
+                map.set(steamId, bucket);
             }
-            map.get(steamId)!.push(entry);
+            bucket.push(entry);
         }
 
         for (const entries of map.values()) {
@@ -484,8 +486,10 @@ class SteamReportService {
             if (bindItem.from && bindItem.from.length > 0) {
                 for (const fromInfo of bindItem.from) {
                     const sourceKey = `${fromInfo.type}:${fromInfo.id}`;
-                    if (!sourceMap.has(sourceKey)) {
-                        sourceMap.set(sourceKey, []);
+                    let bucket = sourceMap.get(sourceKey);
+                    if (!bucket) {
+                        bucket = [];
+                        sourceMap.set(sourceKey, bucket);
                     }
                     const userForSource = fromInfo.nickname
                         ? {
@@ -493,7 +497,7 @@ class SteamReportService {
                               fromNickname: fromInfo.nickname,
                           }
                         : reportUser;
-                    sourceMap.get(sourceKey)!.push(userForSource);
+                    bucket.push(userForSource);
                 }
             }
         }
@@ -546,13 +550,13 @@ class SteamReportService {
             if (type === 'group') {
                 await sendGroupMessage(
                     pluginState.ctx,
-                    parseInt(id),
+                    parseInt(id, 10),
                     message,
                 );
             } else if (type === 'private') {
                 await sendPrivateMessage(
                     pluginState.ctx,
-                    parseInt(id),
+                    parseInt(id, 10),
                     message,
                 );
             }

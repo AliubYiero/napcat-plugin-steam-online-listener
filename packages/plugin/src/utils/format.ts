@@ -63,11 +63,11 @@ export function getChinaDateParts(date?: Date): ChinaDateParts {
             .map((p) => [p.type, p.value] as const),
     );
     return {
-        year: map.get('year')!,
-        month: map.get('month')!,
-        day: map.get('day')!,
-        hour: map.get('hour')!,
-        minute: map.get('minute')!,
-        second: map.get('second')!,
+        year: map.get('year') ?? '',
+        month: map.get('month') ?? '',
+        day: map.get('day') ?? '',
+        hour: map.get('hour') ?? '',
+        minute: map.get('minute') ?? '',
+        second: map.get('second') ?? '',
     };
 }

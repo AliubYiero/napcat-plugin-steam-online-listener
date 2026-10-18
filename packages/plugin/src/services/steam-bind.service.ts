@@ -3,8 +3,8 @@
  * 使用内存缓存管理绑定数据，避免每次操作都从磁盘读取
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { pluginState } from '../core/state';
 import type { SteamBindData, SteamBindItem } from '../types';
 
@@ -132,12 +132,10 @@ class SteamBindService {
      */
     findByNickname(nickname: string): SteamBindItem | undefined {
         this.ensureInitialized();
-        return this.data.find(
-            (item) =>
-                item.from &&
-                item.from.some(
-                    (fromInfo) => fromInfo.nickname === nickname,
-                ),
+        return this.data.find((item) =>
+            item.from?.some(
+                (fromInfo) => fromInfo.nickname === nickname,
+            ),
         );
     }
 

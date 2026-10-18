@@ -51,8 +51,7 @@ export const removeHandler: InstructionHandler = async (
 
         // 只能移除当前群自己绑定的来源
         if (
-            !bindItem.from ||
-            !bindItem.from.some(
+            !bindItem.from?.some(
                 (fromInfo) =>
                     fromInfo.id === currentFromId &&
                     fromInfo.type === 'group',

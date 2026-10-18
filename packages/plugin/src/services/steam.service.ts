@@ -116,33 +116,34 @@ class SteamService {
                 `Steam API 请求成功，返回 ${data.response.players.length} 个玩家信息`,
             );
             return data.response.players;
-        } catch (error: any) {
+        } catch (error) {
             // 检查错误类型并提供详细错误信息
+            const errMessage =
+                error instanceof Error
+                    ? error.message
+                    : String(error);
             let errorMessage = '获取 Steam 玩家信息失败';
             if (
                 error instanceof TypeError &&
-                error.message.includes('fetch')
+                errMessage.includes('fetch')
             ) {
                 errorMessage = '无法连接到 Steam API 服务器';
-            } else if (
-                error.message &&
-                error.message.includes('HTTP')
-            ) {
-                const match = error.message.match(/HTTP (\d+):/);
+            } else if (errMessage.includes('HTTP')) {
+                const match = errMessage.match(/HTTP (\d+):/);
                 if (match) {
-                    const status = parseInt(match[1]);
+                    const status = parseInt(match[1], 10);
                     if (status === 403 || status === 401) {
                         errorMessage =
                             'Steam API Key 无效或无权限访问';
                     } else {
-                        errorMessage = `Steam API 错误: ${status} - ${error.message}`;
+                        errorMessage = `Steam API 错误: ${status} - ${errMessage}`;
                     }
                 } else {
-                    errorMessage = error.message;
+                    errorMessage = errMessage;
                 }
             } else {
                 // 其他错误
-                errorMessage = `请求 Steam API 时发生错误: ${error.message}`;
+                errorMessage = `请求 Steam API 时发生错误: ${errMessage}`;
             }
 
             pluginState.logger.error(errorMessage, error);
@@ -279,33 +280,34 @@ class SteamService {
                 );
                 return null;
             }
-        } catch (error: any) {
+        } catch (error) {
             // 检查错误类型并提供详细错误信息
+            const errMessage =
+                error instanceof Error
+                    ? error.message
+                    : String(error);
             let errorMessage = `查询Steam ID64失败: ${steamId}`;
             if (
                 error instanceof TypeError &&
-                error.message.includes('fetch')
+                errMessage.includes('fetch')
             ) {
                 errorMessage = '无法连接到Steam API服务器';
-            } else if (
-                error.message &&
-                error.message.includes('HTTP')
-            ) {
-                const match = error.message.match(/HTTP (\d+):/);
+            } else if (errMessage.includes('HTTP')) {
+                const match = errMessage.match(/HTTP (\d+):/);
                 if (match) {
-                    const status = parseInt(match[1]);
+                    const status = parseInt(match[1], 10);
                     if (status === 403 || status === 401) {
                         errorMessage =
                             'Steam API Key 无效或无权限访问';
                     } else {
-                        errorMessage = `Steam API错误: ${status} - ${error.message}`;
+                        errorMessage = `Steam API错误: ${status} - ${errMessage}`;
                     }
                 } else {
-                    errorMessage = error.message;
+                    errorMessage = errMessage;
                 }
             } else {
                 // 其他错误
-                errorMessage = `请求Steam API时发生错误: ${error.message}`;
+                errorMessage = `请求Steam API时发生错误: ${errMessage}`;
             }
 
             pluginState.logger.error(errorMessage, error);

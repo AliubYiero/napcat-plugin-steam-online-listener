@@ -282,7 +282,6 @@ class SteamPollingService {
                                     await this.generateStatusChangeMessageForFrom(
                                         change,
                                         fromInfo,
-                                        bindItem,
                                     );
                                 await this.sendMessageToSource(
                                     fromInfo,
@@ -318,7 +317,6 @@ class SteamPollingService {
             type: 'private' | 'group';
             nickname?: string;
         },
-        bindItem: SteamBindItem,
     ): Promise<string> {
         // 获取该来源的自定义昵称（如果存在），否则使用原始昵称
         const customNickname =
@@ -597,7 +595,7 @@ class SteamPollingService {
     <text x="115" y="59" fill="#898a8b" font-size="16">
       ${escapeXml(statusText)}
     </text>
-    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${escapeXml(gameName!)}</text>
+    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${escapeXml(gameName ?? '')}</text>
   </g>
 </svg>`;
             const svgContent = hasGameName
@@ -612,11 +610,11 @@ class SteamPollingService {
                 if (fromInfo.type === 'group') {
                     await sendGroupMessage(
                         pluginState.ctx,
-                        parseInt(fromInfo.id),
+                        parseInt(fromInfo.id, 10),
                         [
                             {
                                 type: 'text',
-                                data: { text: message + '\n' },
+                                data: { text: `${message}\n` },
                             },
                             {
                                 type: 'image',
@@ -629,11 +627,11 @@ class SteamPollingService {
                 } else if (fromInfo.type === 'private') {
                     await sendPrivateMessage(
                         pluginState.ctx,
-                        parseInt(fromInfo.id),
+                        parseInt(fromInfo.id, 10),
                         [
                             {
                                 type: 'text',
-                                data: { text: message + '\n' },
+                                data: { text: `${message}\n` },
                             },
                             {
                                 type: 'image',
@@ -649,13 +647,13 @@ class SteamPollingService {
                 if (fromInfo.type === 'group') {
                     await sendGroupMessage(
                         pluginState.ctx,
-                        parseInt(fromInfo.id),
+                        parseInt(fromInfo.id, 10),
                         message,
                     );
                 } else if (fromInfo.type === 'private') {
                     await sendPrivateMessage(
                         pluginState.ctx,
-                        parseInt(fromInfo.id),
+                        parseInt(fromInfo.id, 10),
                         message,
                     );
                 }
@@ -669,13 +667,13 @@ class SteamPollingService {
             if (fromInfo.type === 'group') {
                 await sendGroupMessage(
                     pluginState.ctx,
-                    parseInt(fromInfo.id),
+                    parseInt(fromInfo.id, 10),
                     message,
                 );
             } else if (fromInfo.type === 'private') {
                 await sendPrivateMessage(
                     pluginState.ctx,
-                    parseInt(fromInfo.id),
+                    parseInt(fromInfo.id, 10),
                     message,
                 );
             }

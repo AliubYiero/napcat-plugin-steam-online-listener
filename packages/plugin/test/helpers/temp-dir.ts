@@ -37,8 +37,9 @@ export function clearTempDir(temp: TempDir): void {
 }
 
 export function cleanupTempDirs(): void {
-    while (createdRoots.length > 0) {
-        const root = createdRoots.pop()!;
+    let root = createdRoots.pop();
+    while (root !== undefined) {
         fs.rmSync(root, { recursive: true, force: true });
+        root = createdRoots.pop();
     }
 }

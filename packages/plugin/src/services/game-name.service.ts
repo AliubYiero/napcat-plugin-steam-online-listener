@@ -8,15 +8,10 @@ import type { GameName, GameNameMap } from '../types.js';
  * 注意：使用延迟初始化模式，避免模块加载时访问未初始化的 pluginState
  */
 class GameNameService {
-    private gameNames: GameNameMap | null = null; // 延迟初始化，初始为 null
+    private gameNames: GameNameMap = {}; // 延迟加载，ensureInitialized 后填充
     private readonly dataFileName = 'steam-game-names.json';
     private fetchingSet: Set<string> = new Set();
     private initialized = false; // 初始化状态标志
-
-    constructor() {
-        // 延迟初始化：不在构造函数中调用 loadGameNames()
-        // 初始化将在首次访问时自动执行
-    }
 
     /**
      * 确保服务已初始化
@@ -65,13 +60,13 @@ class GameNameService {
         }
 
         // 设置英文名称（覆盖或创建）
-        if (!this.gameNames![appid]) {
-            this.gameNames![appid] = { en: enName };
+        if (!this.gameNames[appid]) {
+            this.gameNames[appid] = { en: enName };
             pluginState.logger.info(
                 `[GameNameService] 创建新游戏记录: ${enName} (appid=${appid})`,
             );
         } else {
-            this.gameNames![appid].en = enName;
+            this.gameNames[appid].en = enName;
             pluginState.logger.info(
                 `[GameNameService] 更新游戏英文名: ${enName} (appid=${appid})`,
             );
@@ -81,7 +76,7 @@ class GameNameService {
 
         // 异步获取中文名（如果不存在且不在获取中）
         if (
-            !this.gameNames![appid].zh &&
+            !this.gameNames[appid].zh &&
             !this.fetchingSet.has(appid)
         ) {
             this.fetchChineseName(appid, enName);
@@ -110,8 +105,8 @@ class GameNameService {
         }
 
         // 检查是否已存在
-        if (this.gameNames![appid]) {
-            const gameName = this.gameNames![appid];
+        if (this.gameNames[appid]) {
+            const gameName = this.gameNames[appid];
 
             // 如果英文名有更新，同步更新
             if (enName && gameName.en !== enName) {
@@ -138,7 +133,7 @@ class GameNameService {
         );
 
         const newGameName: GameName = { en: enName };
-        this.gameNames![appid] = newGameName;
+        this.gameNames[appid] = newGameName;
         this.saveGameNames();
 
         // 异步获取中文名
@@ -243,8 +238,8 @@ class GameNameService {
             const zhName = appData.data.name;
 
             // 更新数据
-            if (this.gameNames![appid]) {
-                this.gameNames![appid].zh = zhName;
+            if (this.gameNames[appid]) {
+                this.gameNames[appid].zh = zhName;
                 this.saveGameNames();
                 pluginState.logger.info(
                     `[GameNameService] 获取中文名成功: ${enName} -> ${zhName}`,
@@ -292,7 +287,7 @@ class GameNameService {
         try {
             pluginState.saveDataFile<GameNameMap>(
                 this.dataFileName,
-                this.gameNames!,
+                this.gameNames,
             );
         } catch (error) {
             pluginState.logger.error(
@@ -310,7 +305,7 @@ class GameNameService {
      */
     getAllGames(): Array<{ appid: string; en: string; zh?: string }> {
         this.ensureInitialized();
-        return Object.entries(this.gameNames || {}).map(
+        return Object.entries(this.gameNames).map(
             ([appid, game]) => ({
                 appid,
                 en: game.en,

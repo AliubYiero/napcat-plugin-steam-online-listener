@@ -137,17 +137,21 @@ export const bindBatchHandler: InstructionHandler = async (
                         fromInfo.id === newFromInfo.id &&
                         fromInfo.type === newFromInfo.type,
                 );
+                let from = bindItem.from;
+                if (!from) {
+                    from = [];
+                    bindItem.from = from;
+                }
                 if (
                     existingIndex !== undefined &&
                     existingIndex !== -1
                 ) {
-                    bindItem.from![existingIndex] = {
-                        ...bindItem.from![existingIndex],
+                    from[existingIndex] = {
+                        ...from[existingIndex],
                         ...newFromInfo,
                     };
                 } else {
-                    if (!bindItem.from) bindItem.from = [];
-                    bindItem.from.push(newFromInfo);
+                    from.push(newFromInfo);
                 }
                 if (playerSummary.avatarmedium) {
                     bindItem.face = playerSummary.avatarmedium;

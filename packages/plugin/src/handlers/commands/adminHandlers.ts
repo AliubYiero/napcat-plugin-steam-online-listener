@@ -42,7 +42,7 @@ export const adminAddHandler: InstructionHandler = async (
     }
 
     const userIdToAdd = commands[0];
-    if (!userIdToAdd || isNaN(Number(userIdToAdd))) {
+    if (!userIdToAdd || Number.isNaN(Number(userIdToAdd))) {
         await sendReply(ctx, event, '请输入有效的QQ号');
         return;
     }
@@ -86,7 +86,7 @@ export const adminRemoveHandler: InstructionHandler = async (
     }
 
     const userIdToRemove = commands[0];
-    if (!userIdToRemove || isNaN(Number(userIdToRemove))) {
+    if (!userIdToRemove || Number.isNaN(Number(userIdToRemove))) {
         await sendReply(ctx, event, '请输入有效的QQ号');
         return;
     }

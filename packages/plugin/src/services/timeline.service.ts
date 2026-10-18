@@ -3,9 +3,9 @@
  * 按天记录所有 Steam 用户状态变更，7天后自动归档为 ZIP
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import AdmZip from 'adm-zip';
-import fs from 'fs';
-import path from 'path';
 import { pluginState } from '../core/state';
 import type { TimelineLog, TimelineLogEntry } from '../types';
 import type {
@@ -51,14 +51,6 @@ class TimelineService {
             .toLocaleDateString('zh-CN')
             .replace(/\//g, '-');
         const filename = `${LOG_FILE_PREFIX}-${today}.json`;
-        return path.join(this.logDir, filename);
-    }
-
-    /**
-     * 获取日期对应的日志文件路径
-     */
-    private getLogPathForDate(dateStr: string): string {
-        const filename = `${LOG_FILE_PREFIX}-${dateStr}.json`;
         return path.join(this.logDir, filename);
     }
 
