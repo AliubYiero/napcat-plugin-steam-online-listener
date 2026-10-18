@@ -182,7 +182,7 @@
     <script>
         // 如果本地加载失败，尝试从 CDN 加载
         if (typeof html2canvas === 'undefined') {
-            document.write('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>');
+            document.write('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>');
         }
     </script>
     <script>
@@ -315,17 +315,17 @@
         document.addEventListener('DOMContentLoaded', loadCommands);
 
         // 用户按钮点击事件
-        document.getElementById('userBtn').addEventListener('click', function() {
+        document.getElementById('userBtn').addEventListener('click', () => {
             generateImage('user');
         });
 
         // 管理员按钮点击事件
-        document.getElementById('adminBtn').addEventListener('click', function() {
+        document.getElementById('adminBtn').addEventListener('click', () => {
             generateImage('admin');
         });
 
         // 关闭模态框
-        document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('closeModal').addEventListener('click', () => {
             document.getElementById('imageModal').style.display = 'none';
         });
 

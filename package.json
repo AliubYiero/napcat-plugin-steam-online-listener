@@ -1,50 +1,21 @@
 {
-  "name": "napcat-plugin-steam-online-listener",
-  "plugin": "Steam 状态监听",
-  "version": "1.2.2",
-  "type": "module",
-  "main": "index.mjs",
-  "description": "监听指定 steam 的用户的登录/游戏状态",
-  "author": "Yiero",
-  "license": "MIT",
-  "keywords": [
-    "napcat",
-    "plugin",
-    "qq",
-    "steam"
-  ],
-  "napcat": {
-    "tags": [
-      "工具"
-    ],
-    "minVersion": "4.14.0",
-    "homepage": ""
-  },
-  "dependencies": {
-    "adm-zip": "^0.5.16",
-    "napcat-types": "0.0.16"
-  },
-  "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.3.1",
-    "@types/adm-zip": "^0.5.7",
-    "@types/express": "^5.0.6",
-    "@types/node": "^20.19.33",
-    "napcat-plugin-debug-cli": "^1.2.8",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.1",
-    "vitest": "^4.0.18",
-    "ws": "^8.19.0"
-  },
-  "scripts": {
-    "build": "vite build",
-    "watch": "vite build --watch",
-    "deploy": "vite build --mode deploy",
-    "build:webui": "cd src/webui && pnpm install && pnpm run build",
-    "dev:webui": "cd src/webui && pnpm run dev",
-    "dev": "vite build --watch",
-    "push": "vite build",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
-  }
+    "name": "napcat-plugin-steam-online-listener-monorepo",
+    "private": true,
+    "version": "1.2.2",
+    "type": "module",
+    "scripts": {
+        "build": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener build",
+        "deploy": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener deploy",
+        "dev": "pnpm --filter webui build && pnpm --filter napcat-plugin-steam-online-listener dev",
+        "dev:webui": "pnpm --filter webui dev",
+        "test": "pnpm -r test",
+        "typecheck": "pnpm -r typecheck",
+        "check": "pnpm typecheck && pnpm test",
+        "help:generate": "pnpm --filter napcat-plugin-steam-online-listener help:generate",
+        "format": "biome format --write",
+        "lint": "biome check --write"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.5.10"
+    }
 }
