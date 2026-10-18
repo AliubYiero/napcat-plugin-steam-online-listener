@@ -10,6 +10,23 @@ import { showToast } from '../hooks/useToast';
 import type { GameNameItem } from '../types';
 import { noAuthFetch } from '../utils/api';
 
+/** 中文名状态筛选 */
+type FilterKey = 'all' | 'unset' | 'same' | 'set';
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+    { key: 'all', label: '全部' },
+    { key: 'unset', label: '未设置' },
+    { key: 'same', label: '英文同名' },
+    { key: 'set', label: '已设置' },
+];
+
+/** 中文名为空 (undefined / 空串 / 纯空白) */
+const isUnset = (g: GameNameItem): boolean => !g.zh?.trim();
+
+/** 中文名与英文名相同 (忽略大小写与空白) */
+const isSameAsEn = (g: GameNameItem): boolean =>
+    !!g.zh && g.zh.trim().toLowerCase() === g.en.trim().toLowerCase();
+
 /**
  * 游戏名称管理页
  *
@@ -20,6 +37,7 @@ export default function GameNamesPage() {
     const [games, setGames] = useState<GameNameItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState<FilterKey>('all');
     /** 各 appid 的中文名草稿, 未出现则为未编辑 */
     const [drafts, setDrafts] = useState<Record<string, string>>({});
     const [savingId, setSavingId] = useState<string | null>(null);
@@ -44,16 +62,37 @@ export default function GameNamesPage() {
         fetchGames();
     }, [fetchGames]);
 
+    const unsetCount = useMemo(
+        () => games.filter(isUnset).length,
+        [games],
+    );
+
     const filtered = useMemo(() => {
-        if (!search) return games;
-        const q = search.toLowerCase();
-        return games.filter(
-            (g) =>
+        return games.filter((g) => {
+            if (filter === 'unset' && !isUnset(g)) return false;
+            if (filter === 'same' && !isSameAsEn(g)) return false;
+            if (filter === 'set' && (isUnset(g) || isSameAsEn(g))) {
+                return false;
+            }
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return (
                 g.appid.includes(q) ||
                 g.en.toLowerCase().includes(q) ||
-                g.zh?.toLowerCase().includes(q),
-        );
-    }, [games, search]);
+                !!g.zh?.toLowerCase().includes(q)
+            );
+        });
+    }, [games, search, filter]);
+
+    const emptyText = search
+        ? '没有匹配的游戏'
+        : filter === 'unset'
+          ? '没有未设置中文名的游戏'
+          : filter === 'same'
+            ? '没有英文同名的游戏'
+            : filter === 'set'
+              ? '没有已设置中文名的游戏'
+              : '暂无游戏数据';
 
     const draftOf = (game: GameNameItem): string =>
         drafts[game.appid] ?? game.zh ?? '';
@@ -141,6 +180,22 @@ export default function GameNamesPage() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+                <div className="flex flex-wrap items-center gap-1.5 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.02]">
+                    {FILTERS.map((f) => (
+                        <button
+                            key={f.key}
+                            type="button"
+                            className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                                filter === f.key
+                                    ? 'bg-primary text-white'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                            onClick={() => setFilter(f.key)}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
                 <button
                     type="button"
                     className="btn btn-ghost text-xs"
@@ -154,6 +209,7 @@ export default function GameNamesPage() {
             {/* 统计 */}
             <p className="text-xs text-gray-400">
                 共 {games.length} 个游戏
+                {unsetCount > 0 && `，未设置中文名 ${unsetCount} 个`}
                 {search && `，搜索到 ${filtered.length} 个`}
             </p>
 
@@ -254,9 +310,7 @@ export default function GameNamesPage() {
                             className="mx-auto text-gray-300 dark:text-gray-600 mb-3"
                         />
                         <p className="text-gray-400 text-sm">
-                            {search
-                                ? '没有匹配的游戏'
-                                : '暂无游戏数据'}
+                            {emptyText}
                         </p>
                     </div>
                 )}
