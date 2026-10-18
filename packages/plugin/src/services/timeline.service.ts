@@ -98,20 +98,25 @@ class TimelineService {
      */
     private convertToLogEntry(
         change: StatusChange,
+        timestamp: number,
     ): TimelineLogEntry {
         return [
             change.steamId,
             change.changeType,
             change.newStatus.gameid || null,
-            Date.now(),
+            timestamp,
         ];
     }
 
     /**
      * 记录状态变更
      * @param changes 状态变更数组
+     * @param timestamps 可选的 steamId → 时间戳映射 (误报检测确认时回填首次检测时刻)
      */
-    record(changes: StatusChange[]): void {
+    record(
+        changes: StatusChange[],
+        timestamps?: ReadonlyMap<string, number>,
+    ): void {
         if (changes.length === 0) return;
 
         this.ensureInitialized();
@@ -121,7 +126,9 @@ class TimelineService {
 
         // 将变更转换为记录并追加
         for (const change of changes) {
-            log.d.push(this.convertToLogEntry(change));
+            const timestamp =
+                timestamps?.get(change.steamId) ?? Date.now();
+            log.d.push(this.convertToLogEntry(change, timestamp));
         }
 
         this.saveLogFile(logPath, log);

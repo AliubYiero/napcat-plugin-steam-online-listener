@@ -11,6 +11,7 @@ import {
 import type { SteamBindItem } from '../types';
 import { formatPlayTime } from '../utils/format';
 import { escapeXml, renderSvgToBase64 } from '../utils/svg-render';
+import { falsePositiveService } from './false-positive.service';
 import { gameNameService } from './game-name.service.js';
 import { steamService } from './steam.service';
 import { steamBindService } from './steam-bind.service';
@@ -186,23 +187,41 @@ class SteamPollingService {
                                 playerSummaries,
                             );
 
-                        if (changes.length > 0) {
-                            pluginState.logger.info(
-                                `检测到 ${changes.length} 个 Steam 状态变化`,
+                        // 误报检测: 分流为「已确认」与「待确认(冻结)」
+                        const resolution =
+                            falsePositiveService.resolve(
+                                playerSummaries,
+                                changes,
                             );
 
-                            // 记录到时间线
-                            timelineService.record(changes);
+                        if (resolution.confirmed.length > 0) {
+                            pluginState.logger.info(
+                                `检测到 ${resolution.confirmed.length} 个 Steam 状态变化`,
+                            );
+
+                            // 记录到时间线 (回填首次检测时刻)
+                            timelineService.record(
+                                resolution.confirmed,
+                                resolution.confirmedTimestamps,
+                            );
 
                             await this.handleStatusChanges(
-                                changes,
+                                resolution.confirmed,
                                 allBindItems,
                             );
                         }
 
-                        // 更新缓存
+                        // 更新缓存 (待确认项冻结, 确认项回填游戏开始时刻)
+                        const updatableSummaries =
+                            playerSummaries.filter(
+                                (summary) =>
+                                    !resolution.frozenSteamIds.has(
+                                        summary.steamid,
+                                    ),
+                            );
                         steamCacheService.updateCacheBatch(
-                            playerSummaries,
+                            updatableSummaries,
+                            resolution.confirmedTimestamps,
                         );
                     }
                 } catch (error) {

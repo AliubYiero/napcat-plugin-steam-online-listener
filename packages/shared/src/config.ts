@@ -201,6 +201,11 @@ export interface PluginConfig {
     steamApiKey: string;
     /** Steam 状态轮询间隔 (秒), 变更时重设定时器 */
     pollingIntervalSeconds: number;
+    /**
+     * 误报检测: 连续 N 轮确认同一新状态后才推送。
+     * 0 表示关闭 (检测到即推送)。
+     */
+    falsePositiveDetection: number;
     /** 要推送的状态变化类型 (multiSelect) */
     notifyStatusTypes: string[];
 }
@@ -264,6 +269,17 @@ export const FIELDS = [
         default: 60,
         min: 10,
         max: 3600,
+        step: 1,
+    },
+    {
+        key: 'falsePositiveDetection',
+        kind: 'number',
+        label: '误报检测',
+        description:
+            '连续检测到同一新状态 N 次后才推送；0 表示关闭，检测到即推送',
+        default: 0,
+        min: 0,
+        max: 10,
         step: 1,
     },
     {

@@ -141,21 +141,33 @@ class SteamCacheService {
 
     /**
      * 批量更新缓存
+     * @param playerSummaries 本批玩家状态
+     * @param gameStartTimeOverrides 可选: steamId → gameStartTime 覆盖值
+     *   (误报检测确认时回填首次检测时刻)
      */
-    updateCacheBatch(playerSummaries: SteamPlayerSummary[]): void {
+    updateCacheBatch(
+        playerSummaries: SteamPlayerSummary[],
+        gameStartTimeOverrides?: ReadonlyMap<string, number>,
+    ): void {
         this.ensureInitialized();
         const now = Date.now();
 
         for (const player of playerSummaries) {
             // 获取旧缓存数据
             const oldCache = this.cache[player.steamid];
+            const overrideStartTime = gameStartTimeOverrides?.get(
+                player.steamid,
+            );
 
             // 判断是否需要更新 gameStartTime
             let gameStartTime: number | undefined;
 
             if (player.gameextrainfo) {
                 // 当前正在玩游戏
-                if (
+                if (overrideStartTime !== undefined) {
+                    // 误报检测确认: 回填首次检测时刻
+                    gameStartTime = overrideStartTime;
+                } else if (
                     oldCache?.gameextrainfo === player.gameextrainfo
                 ) {
                     // 同一游戏，保持原来的 gameStartTime
