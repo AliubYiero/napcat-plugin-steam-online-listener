@@ -1,9 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    escapeXml,
-    renderSvgToBase64,
-} from '../../src/utils/svg-render';
-import { pluginStateStub } from '../helpers/plugin-state-mock';
+import { describe, expect, it } from 'vitest';
+import { escapeXml } from '../../src/utils/svg-render';
 
 describe('escapeXml', () => {
     it('空字符串返回空字符串', () => {
@@ -26,55 +22,5 @@ describe('escapeXml', () => {
 
     it('普通文本保持不变', () => {
         expect(escapeXml('Hello 世界 123')).toBe('Hello 世界 123');
-    });
-});
-
-describe('renderSvgToBase64', () => {
-    beforeEach(() => {
-        pluginStateStub.config.steamApiKey = '';
-    });
-
-    it('渲染成功时返回去除 data URI 前缀的 base64', async () => {
-        vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue({
-                json: async () => ({
-                    code: 0,
-                    data: {
-                        imageBase64: 'data:image/png;base64,QUJD',
-                        format: 'png',
-                    },
-                }),
-            }),
-        );
-
-        await expect(renderSvgToBase64('<svg/>')).resolves.toBe(
-            'QUJD',
-        );
-    });
-
-    it('返回码非 0 时返回 null', async () => {
-        vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue({
-                json: async () => ({
-                    code: -1,
-                    message: '渲染失败',
-                }),
-            }),
-        );
-
-        await expect(renderSvgToBase64('<svg/>')).resolves.toBeNull();
-    });
-
-    it('请求抛错时返回 null（不向外抛异常）', async () => {
-        vi.stubGlobal(
-            'fetch',
-            vi
-                .fn()
-                .mockRejectedValue(new Error('connection refused')),
-        );
-
-        await expect(renderSvgToBase64('<svg/>')).resolves.toBeNull();
     });
 });

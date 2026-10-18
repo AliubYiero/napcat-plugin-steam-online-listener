@@ -14,7 +14,7 @@ import {
     createNextDelay,
     isAlignedInterval,
 } from '../utils/poll-scheduler';
-import { escapeXml, renderSvgToBase64 } from '../utils/svg-render';
+import { escapeXml } from '../utils/svg-render';
 import { falsePositiveService } from './false-positive.service';
 import { gameNameService } from './game-name.service.js';
 import { steamService } from './steam.service';
@@ -25,6 +25,10 @@ import {
     steamCacheService,
 } from './steam-cache.service';
 import { steamReportService } from './steam-report.service';
+import {
+    RENDER_FONT_FAMILY,
+    svgRenderService,
+} from './svg-render.service';
 import { timelineService } from './timeline.service';
 
 // ==================== 轮询服务类 ====================
@@ -606,35 +610,86 @@ class SteamPollingService {
 
             // 动态计算宽度
             const MIN_SVG_WIDTH = 400;
+            const MAX_SVG_WIDTH = 2000;
             const leftPadding = 115; // 文本起始 x 坐标
             const rightPadding = 20; // 右侧留白
 
+            const nicknameStyle = {
+                fontSize: 18,
+                fontWeight: 'bold',
+            };
+            const gameNameStyle = {
+                fontSize: 16,
+                fontWeight: 500,
+            };
+
             // 计算第一行宽度：昵称 + 自定义昵称
-            const nicknameFontSize = 18;
             let line1Text = change.newStatus.personaname || '';
             if (fromInfo.nickname) {
                 line1Text += ` (${fromInfo.nickname})`;
             }
-            const line1Width = this.calculateTextWidth(
-                line1Text,
-                nicknameFontSize,
-            );
+            const line1Width =
+                await svgRenderService.calculateTextWidth(
+                    line1Text,
+                    nicknameStyle,
+                );
 
             // 计算第三行宽度：游戏名称（如果存在）
-            const gameNameFontSize = 16;
             const line3Text = gameName || '';
-            const line3Width = this.calculateTextWidth(
-                line3Text,
-                gameNameFontSize,
-            );
+            const line3Width =
+                await svgRenderService.calculateTextWidth(
+                    line3Text,
+                    gameNameStyle,
+                );
 
-            // 取最大宽度，并确保不小于最小宽度
+            // 取最大宽度，并限制在 [最小, 最大] 区间内
             const maxTextWidth = Math.max(line1Width, line3Width);
-            const svgWidth = Math.max(
-                MIN_SVG_WIDTH,
-                leftPadding + maxTextWidth + rightPadding,
+            const svgWidth = Math.min(
+                MAX_SVG_WIDTH,
+                Math.max(
+                    MIN_SVG_WIDTH,
+                    leftPadding + maxTextWidth + rightPadding,
+                ),
             );
             const svgHeight = 100;
+            const availableWidth =
+                svgWidth - leftPadding - rightPadding;
+
+            // 超宽时截断昵称与游戏名
+            let personaName = change.newStatus.personaname || '';
+            let nickname = fromInfo.nickname;
+            if (nickname) {
+                const suffixWidth =
+                    (await svgRenderService.calculateTextWidth(
+                        `(${nickname})`,
+                        nicknameStyle,
+                    )) + 8;
+                const nameWidth = availableWidth - suffixWidth;
+                if (nameWidth > 0) {
+                    personaName =
+                        await svgRenderService.truncateToWidth(
+                            personaName,
+                            nameWidth,
+                            nicknameStyle,
+                        );
+                } else {
+                    personaName = '';
+                    nickname = undefined;
+                }
+            } else {
+                personaName = await svgRenderService.truncateToWidth(
+                    personaName,
+                    availableWidth,
+                    nicknameStyle,
+                );
+            }
+            const displayGameName = gameName
+                ? await svgRenderService.truncateToWidth(
+                      gameName,
+                      availableWidth,
+                      gameNameStyle,
+                  )
+                : '';
 
             const imageFace =
                 bindItem.face ||
@@ -654,11 +709,11 @@ class SteamPollingService {
   <rect x="90" y="10" width="4" height="80" fill="#4cb4ff"/>
   
   <!-- 文本内容 -->
-  <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
+  <g font-family="${RENDER_FONT_FAMILY}">
     <!-- 用户名 + 可选昵称 -->
     <text x="115" y="36" font-size="18" font-weight="bold">
-      <tspan fill="#4cb4ff">${escapeXml(change.newStatus.personaname)}</tspan>
-       ${fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${escapeXml(fromInfo.nickname)})</tspan>` : ''}
+      <tspan fill="#4cb4ff">${escapeXml(personaName)}</tspan>
+       ${nickname ? `<tspan dx="8" fill="#898a8b">(${escapeXml(nickname)})</tspan>` : ''}
     </text>
     
     <!-- 状态文本 -->
@@ -675,15 +730,15 @@ class SteamPollingService {
          x="10" y="10" width="80" height="80"
          preserveAspectRatio="xMidYMid slice" />
   <rect x="90" y="10" width="4" height="80" fill="#4CAF50"/>
-  <g font-family="'Microsoft YaHei', 'SimHei', sans-serif">
+  <g font-family="${RENDER_FONT_FAMILY}">
     <text x="115" y="30" font-size="18" font-weight="bold">
-      <tspan fill="#cee8b1">${escapeXml(change.newStatus.personaname)}</tspan>
-      ${fromInfo.nickname ? `<tspan dx="8" fill="#898a8b">(${escapeXml(fromInfo.nickname)})</tspan>` : ''}
+      <tspan fill="#cee8b1">${escapeXml(personaName)}</tspan>
+      ${nickname ? `<tspan dx="8" fill="#898a8b">(${escapeXml(nickname)})</tspan>` : ''}
     </text>
     <text x="115" y="59" fill="#898a8b" font-size="16">
       ${escapeXml(statusText)}
     </text>
-    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${escapeXml(gameName ?? '')}</text>
+    <text x="115" y="84" fill="#91c257" font-size="16" font-weight="500">${escapeXml(displayGameName)}</text>
   </g>
 </svg>`;
             const svgContent = hasGameName
@@ -691,7 +746,8 @@ class SteamPollingService {
                 : notHasGameNameSvgContent;
 
             // 使用 svg-convert 将 SVG 渲染为 PNG 并转换为 base64
-            const svgBase64 = await renderSvgToBase64(svgContent);
+            const svgBase64 =
+                await svgRenderService.renderSvg(svgContent);
 
             // 发送文本消息和PNG图片
             if (svgBase64) {
@@ -794,55 +850,6 @@ class SteamPollingService {
                     change.newStatus.personastate,
                 );
         }
-    }
-
-    /**
-     * 判断字符是否为全角字符
-     * @param char 单个字符
-     * @returns 是否为全角字符
-     */
-    private isFullWidthChar(char: string): boolean {
-        const code = char.codePointAt(0) || 0;
-
-        return (
-            // CJK 统一表意文字及扩展区
-            (code >= 0x4e00 && code <= 0x9fff) ||
-            (code >= 0x3400 && code <= 0x4dbf) ||
-            (code >= 0x20000 && code <= 0x2a6df) ||
-            (code >= 0x2a700 && code <= 0x2b73f) ||
-            (code >= 0x2b740 && code <= 0x2b81f) ||
-            (code >= 0x2b820 && code <= 0x2ceaf) ||
-            // 日文假名
-            (code >= 0x3040 && code <= 0x309f) ||
-            (code >= 0x30a0 && code <= 0x30ff) ||
-            // 韩文音节
-            (code >= 0xac00 && code <= 0xd7af) ||
-            // 全角 ASCII 及标点
-            (code >= 0xff00 && code <= 0xffef) ||
-            // 其他常见全角标点
-            (code >= 0x3000 && code <= 0x303f)
-        );
-    }
-
-    /**
-     * 计算字符串的预计显示宽度
-     * @param text 输入字符串
-     * @param fontSize 字体字号（单位：px）
-     * @returns 预计总宽度
-     */
-    private calculateTextWidth(
-        text: string,
-        fontSize: number,
-    ): number {
-        if (!text || fontSize <= 0) return 0;
-
-        let totalWidth = 0;
-        for (const char of text) {
-            const widthFactor = this.isFullWidthChar(char) ? 1 : 0.6;
-            totalWidth += fontSize * widthFactor;
-        }
-
-        return totalWidth;
     }
 }
 
