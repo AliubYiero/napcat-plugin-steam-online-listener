@@ -105,7 +105,7 @@ pnpm run dev:webui
 | `debug` | boolean | false | 是否启用调试模式 |
 | `commandPrefix` | string | '#steam' | 指令前缀 |
 | `cooldownSeconds` | number | 1 | 命令冷却时间（秒） |
-| `pollingIntervalSeconds` | number | 60 | Steam状态轮询间隔（秒） |
+| `pollingIntervalSeconds` | number | 60 | Steam状态轮询间隔（秒）；10/15/30/60 会按整点边界对齐 |
 | `steamApiKey` | string | '' | Steam Web API 密钥 |
 | `adminUsers` | string[] | [] | 管理员用户QQ号列表 |
 | `notifyStatusTypes` | string[] | 全部8种 | 要推送的状态类型列表 |

@@ -264,7 +264,8 @@ export const FIELDS = [
         key: 'pollingIntervalSeconds',
         kind: 'number',
         label: 'Steam 轮询间隔（秒）',
-        description: 'Steam 状态检查的间隔时间，默认 60 秒',
+        description:
+            'Steam 状态检查的间隔时间，默认 60 秒；10/15/30/60 秒会按整点边界对齐',
         reactive: true,
         default: 60,
         min: 10,

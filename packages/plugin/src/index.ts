@@ -119,33 +119,44 @@ export const plugin_get_config: PluginModule['plugin_get_config'] =
 /** 设置配置（完整替换，由 NapCat WebUI 调用；入口统一清洗） */
 export const plugin_set_config: PluginModule['plugin_set_config'] =
     async (ctx, config) => {
+        const prevSteamApiKey = pluginState.config.steamApiKey;
+        const prevInterval =
+            pluginState.config.pollingIntervalSeconds;
+
         pluginState.replaceConfig(config as PluginConfig);
         ctx.logger.info('配置已通过 WebUI 更新');
+
+        // 仅当轮询相关字段实际变化时才重载
+        if (
+            prevSteamApiKey !== pluginState.config.steamApiKey ||
+            prevInterval !== pluginState.config.pollingIntervalSeconds
+        ) {
+            reloadPollingService(ctx, '轮询相关配置变更');
+        }
     };
 
 /**
  * 配置变更回调
  *
  * 仅在标记 `reactive: true` 的字段上触发。
- * 轮询相关字段 (steamApiKey / pollingIntervalSeconds) 变更后需重启轮询:
+ * 轮询相关字段 (steamApiKey / pollingIntervalSeconds) 变更后需重载轮询:
  * 轮询间隔在启动时读取一次, 仅改定时器时长不会立即生效。
  */
 export const plugin_on_config_change: PluginModule['plugin_on_config_change'] =
     async (ctx, _ui, key, value, _currentConfig) => {
         try {
-            pluginState.updateConfig({ [key]: value });
-            ctx.logger.debug(`配置项 ${key} 已更新`);
-
-            if (
+            const isPollingKey =
                 key === 'steamApiKey' ||
-                key === 'pollingIntervalSeconds'
-            ) {
-                ctx.logger.info(
-                    `配置项 ${key} 变更，正在重启轮询服务...`,
-                );
-                steamPollingService.stopPolling();
-                steamPollingService.startPolling();
-                ctx.logger.info('轮询服务已重启');
+                key === 'pollingIntervalSeconds';
+            const before =
+                pluginState.config[key as keyof PluginConfig];
+
+            pluginState.updateConfig({ [key]: value });
+
+            const after =
+                pluginState.config[key as keyof PluginConfig];
+            if (isPollingKey && before !== after) {
+                reloadPollingService(ctx, `配置项 ${key} 变更`);
             }
         } catch (err) {
             ctx.logger.error(`更新配置项 ${key} 失败:`, err);
@@ -153,6 +164,19 @@ export const plugin_on_config_change: PluginModule['plugin_on_config_change'] =
     };
 
 // ==================== 内部函数 ====================
+
+/**
+ * 重载轮询服务（幂等: 先停后启, 工厂按新配置重建）
+ */
+function reloadPollingService(
+    ctx: NapCatPluginContext,
+    reason: string,
+): void {
+    ctx.logger.info(`${reason}，正在重启轮询服务...`);
+    steamPollingService.stopPolling();
+    steamPollingService.startPolling();
+    ctx.logger.info('轮询服务已重启');
+}
 
 /**
  * 注册 WebUI 页面和静态资源

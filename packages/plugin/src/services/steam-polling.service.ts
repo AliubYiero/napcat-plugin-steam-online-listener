@@ -10,6 +10,10 @@ import {
 } from '../handlers/utils';
 import type { SteamBindItem } from '../types';
 import { formatPlayTime } from '../utils/format';
+import {
+    createNextDelay,
+    isAlignedInterval,
+} from '../utils/poll-scheduler';
 import { escapeXml, renderSvgToBase64 } from '../utils/svg-render';
 import { falsePositiveService } from './false-positive.service';
 import { gameNameService } from './game-name.service.js';
@@ -29,20 +33,26 @@ class SteamPollingService {
     private pollingTimer: NodeJS.Timeout | null = null;
     private isPollingActive = false;
     private lastPollDate: string = ''; // 上次轮询日期
+    /** 代际令牌: 每次启动/停止自增, 使在途轮询的旧循环失效 */
+    private generation = 0;
+    /** 当前有效轮询间隔（秒） */
+    private intervalSeconds = 60;
+    /** 下一次轮询延迟计算函数 (由工厂创建) */
+    private nextDelayFn: ((nowMs?: number) => number) | null = null;
 
     /**
-     * 获取当前轮询间隔（毫秒）
+     * 获取当前轮询间隔（秒）
+     *
+     * 配置层已清洗到 [10, 3600]，此处仅做防御性收敛。
      */
-    private getPollingInterval(): number {
-        // 限制轮询间隔范围：最小1秒，最大1小时（3600秒）
-        const intervalSeconds = Math.min(
+    private getPollingIntervalSeconds(): number {
+        return Math.min(
             3600, // 最大1小时
             Math.max(
-                1,
+                10,
                 pluginState.config.pollingIntervalSeconds || 60,
             ),
         );
-        return intervalSeconds * 1000;
     }
 
     /**
@@ -64,11 +74,21 @@ class SteamPollingService {
 
         // 先标记为正在启动状态，防止重复启动
         this.isPollingActive = true;
+        this.generation += 1;
+        const gen = this.generation;
 
         // 验证 API Key 是否有效
         steamService
             .validateApiKey()
             .then((isValid) => {
+                // 校验期间若已被停止/重载，放弃本次启动
+                if (
+                    gen !== this.generation ||
+                    !this.isPollingActive
+                ) {
+                    return;
+                }
+
                 if (!isValid) {
                     this.isPollingActive = false;
                     pluginState.logger.warn(
@@ -77,29 +97,74 @@ class SteamPollingService {
                     return;
                 }
 
-                // 启动定时轮询
-                const interval = this.getPollingInterval();
-                this.pollingTimer = setInterval(() => {
-                    this.pollSteamStatuses();
-                }, interval);
-
-                // 将定时器注册到 pluginState 以便在插件清理时自动清理
-                pluginState.timers.set(
-                    'steam-polling',
-                    this.pollingTimer,
+                // 工厂按当前间隔一次性选定延迟策略
+                this.intervalSeconds =
+                    this.getPollingIntervalSeconds();
+                this.nextDelayFn = createNextDelay(
+                    this.intervalSeconds,
                 );
 
+                const mode = isAlignedInterval(this.intervalSeconds)
+                    ? `已对齐到 ${this.intervalSeconds} 秒边界`
+                    : `每 ${this.intervalSeconds} 秒`;
                 pluginState.logger.info(
-                    `Steam 轮询服务已启动，每 ${interval / 1000} 秒检查一次状态变化`,
+                    `Steam 轮询服务已启动，${mode}检查一次状态变化`,
                 );
+
+                this.scheduleNextPoll(gen);
             })
             .catch((error) => {
+                if (gen !== this.generation) {
+                    return;
+                }
                 this.isPollingActive = false;
                 pluginState.logger.error(
                     '验证 Steam API Key 时出错:',
                     error,
                 );
             });
+    }
+
+    /**
+     * 排定下一次轮询（递归 setTimeout）
+     *
+     * 令牌失效或服务已停止时不排程，避免旧循环复活。
+     */
+    private scheduleNextPoll(gen: number): void {
+        if (gen !== this.generation || !this.isPollingActive) {
+            return;
+        }
+
+        const delay = this.nextDelayFn
+            ? this.nextDelayFn()
+            : this.intervalSeconds * 1000;
+
+        this.pollingTimer = setTimeout(() => {
+            void this.runPollCycle(gen);
+        }, delay);
+
+        // 每轮重排都用同一 key 覆盖, 便于插件清理时清除最新定时器
+        pluginState.timers.set('steam-polling', this.pollingTimer);
+    }
+
+    /**
+     * 执行一轮轮询, 完成后按策略重排
+     */
+    private async runPollCycle(gen: number): Promise<void> {
+        if (gen !== this.generation || !this.isPollingActive) {
+            return;
+        }
+
+        try {
+            await this.pollSteamStatuses();
+        } catch (error) {
+            pluginState.logger.error(
+                '执行 Steam 状态轮询时出错:',
+                error,
+            );
+        } finally {
+            this.scheduleNextPoll(gen);
+        }
     }
 
     /**
@@ -111,11 +176,14 @@ class SteamPollingService {
             return;
         }
 
+        // 自增代际, 使在途轮询完成后不再重排
+        this.generation += 1;
+
         if (this.pollingTimer) {
-            clearInterval(this.pollingTimer);
-            pluginState.timers.delete('steam-polling');
+            clearTimeout(this.pollingTimer);
             this.pollingTimer = null;
         }
+        pluginState.timers.delete('steam-polling');
 
         this.isPollingActive = false;
         pluginState.logger.info('Steam 轮询服务已停止');
@@ -775,22 +843,6 @@ class SteamPollingService {
         }
 
         return totalWidth;
-    }
-
-    /**
-     * 获取轮询服务状态
-     */
-    getStatus(): {
-        isActive: boolean;
-        interval: number;
-        nextPoll: number;
-    } {
-        const interval = this.getPollingInterval();
-        return {
-            isActive: this.isPollingActive,
-            interval: interval,
-            nextPoll: this.pollingTimer ? Date.now() + interval : 0,
-        };
     }
 }
 

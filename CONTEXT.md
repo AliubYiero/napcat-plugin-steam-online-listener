@@ -101,7 +101,7 @@ _Avoid_: "监听类型""开关"——它是状态类型的多选集合, 不是�
 - 指令前缀: **固定为 `#steam`** (`COMMAND_PREFIX`, 插件内部常量, 不暴露给用户修改)。
 - 指令触发方式: 仅**固定前缀**一种形态, 无 `triggerModes` 配置项, 不支持 `@机器人` 触发。
 - 超级管理员名单 (`adminUsers`): 默认**空数组** (无人是超管)。该字段无启用/关闭语义, 不适用宽松判定。
-- 轮询间隔 (`pollingIntervalSeconds`): 默认值见 `FIELDS`, 范围 10–3600 秒, 运行期可改 (reactive)。
+- 轮询间隔 (`pollingIntervalSeconds`): 默认值见 `FIELDS`, 范围 10–3600 秒, 运行期可改 (reactive)。10/15/30/60 秒走墙钟对齐 (0/10/…、0/15/…、0/30、整分钟), 其余间隔为"本轮完成后延时一个间隔"。
 - 通知状态类型 (`notifyStatusTypes`): 默认值见 `FIELDS`, 运行期可改 (reactive)。
 
 新增有默认值语义的配置项时, 在此处声明选择及理由; 难逆转的补 ADR (判据见 [docs/development-pattern.md](docs/development-pattern.md) 的"ADR 纪律")。
