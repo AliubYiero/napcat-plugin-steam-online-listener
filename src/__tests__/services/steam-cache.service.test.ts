@@ -1,60 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock 外部依赖 — 必须在 import 被测模块之前
-vi.mock('../core/state', () => ({
-	pluginState: {
-		loadDataFile: vi.fn().mockReturnValue({}),
-		saveDataFile: vi.fn(),
-		logger: {
-			info: vi.fn(),
-			warn: vi.fn(),
-			error: vi.fn(),
-			debug: vi.fn(),
-		},
-	},
-}));
-
-vi.mock('../services/game-name.service.js', () => ({
+vi.mock('../../services/game-name.service.js', () => ({
 	gameNameService: {
 		getFormattedGameName: vi.fn().mockResolvedValue('MockGameName'),
 	},
 }));
 
-vi.mock('../utils/format', () => ({
+vi.mock('../../utils/format', () => ({
 	formatPlayTime: vi.fn().mockReturnValue('1小时30分钟'),
 }));
 
-import { steamCacheService } from '../services/steam-cache.service';
-import type { SteamPlayerSummary } from '../services/steam.service';
-
-// ==================== 测试数据工厂 ====================
-
-function makePlayer(overrides: Partial<SteamPlayerSummary> & { steamid: string; personaname: string; personastate: number }): SteamPlayerSummary {
-	return {
-		profileurl: '',
-		avatar: '',
-		avatarmedium: '',
-		avatarfull: '',
-		communityvisibilitystate: 3,
-		...overrides,
-	} as SteamPlayerSummary;
-}
-
-function offlinePlayer(steamid = '123'): SteamPlayerSummary {
-	return makePlayer({ steamid, personaname: 'TestUser', personastate: 0 });
-}
-
-function onlinePlayer(steamid = '123'): SteamPlayerSummary {
-	return makePlayer({ steamid, personaname: 'TestUser', personastate: 1 });
-}
-
-function inGamePlayer(steamid = '123', game = 'Dota 2', gameid = '570'): SteamPlayerSummary {
-	return makePlayer({ steamid, personaname: 'TestUser', personastate: 1, gameextrainfo: game, gameid });
-}
-
-function afkPlayer(steamid = '123', game = 'Dota 2', gameid = '570'): SteamPlayerSummary {
-	return makePlayer({ steamid, personaname: 'TestUser', personastate: 3, gameextrainfo: game, gameid });
-}
+import { steamCacheService } from '../../services/steam-cache.service';
+import { offlinePlayer, onlinePlayer, inGamePlayer, afkPlayer } from '../helpers/steam-players';
 
 // ==================== 测试 ====================
 

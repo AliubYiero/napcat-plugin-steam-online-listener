@@ -65,7 +65,7 @@ export async function handleSteamReport(
  * @param day 'today' 或 'yesterday'
  * @returns 日期字符串、结束时间戳、日期标签
  */
-function calculateReportRange(day: string): { dateStr: string; endTime: number; dateLabel: string } {
+export function calculateReportRange(day: string): { dateStr: string; endTime: number; dateLabel: string } {
     const now = new Date();
     const parts = getChinaDateParts(now);
     const year = Number(parts.year);

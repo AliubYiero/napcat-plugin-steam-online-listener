@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { formatPlayTime, getChinaDateParts } from '../utils/format';
+import { formatPlayTime, getChinaDateParts } from '../../utils/format';
 
 describe('formatPlayTime', () => {
 	afterEach(() => {
