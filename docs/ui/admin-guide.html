@@ -197,7 +197,7 @@
         document.addEventListener('DOMContentLoaded', loadCommands);
 
         // 生成图片功能
-        document.getElementById('captureBtn').addEventListener('click', async function() {
+        document.getElementById('captureBtn').addEventListener('click', async () => {
             const loading = document.getElementById('loading');
             const modal = document.getElementById('imageModal');
             const previewImage = document.getElementById('previewImage');
@@ -238,7 +238,7 @@
         });
 
         // 关闭模态框
-        document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('closeModal').addEventListener('click', () => {
             document.getElementById('imageModal').style.display = 'none';
         });
 

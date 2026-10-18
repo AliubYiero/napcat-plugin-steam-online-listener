@@ -40,16 +40,18 @@ jobs:
       - name: Extract plugin metadata
         id: meta
         run: |
-          # 从 package.json 读取插件元信息
-          PLUGIN_ID=$(node -e "console.log(require('./package.json').name)")
-          PLUGIN_NAME=$(node -e "console.log(require('./package.json').plugin || require('./package.json').name)")
-          DESCRIPTION=$(node -e "console.log(require('./package.json').description || '')")
-          AUTHOR=$(node -e "console.log(require('./package.json').author || '')")
+          # 插件元信息在 monorepo 的 packages/plugin/package.json
+          PKG=./packages/plugin/package.json
+
+          PLUGIN_ID=$(node -e "console.log(require('$PKG').name)")
+          PLUGIN_NAME=$(node -e "console.log(require('$PKG').plugin || require('$PKG').name)")
+          DESCRIPTION=$(node -e "console.log(require('$PKG').description || '')")
+          AUTHOR=$(node -e "console.log(require('$PKG').author || '')")
 
           # 从 package.json 的 napcat 字段读取索引专用信息
-          TAGS=$(node -e "console.log(JSON.stringify(require('./package.json').napcat?.tags || ['工具']))")
-          MIN_VERSION=$(node -e "console.log(require('./package.json').napcat?.minVersion || '4.14.0')")
-          HOMEPAGE=$(node -e "console.log(require('./package.json').napcat?.homepage || require('./package.json').homepage || '')")
+          TAGS=$(node -e "console.log(JSON.stringify(require('$PKG').napcat?.tags || ['工具']))")
+          MIN_VERSION=$(node -e "console.log(require('$PKG').napcat?.minVersion || '4.14.0')")
+          HOMEPAGE=$(node -e "console.log(require('$PKG').napcat?.homepage || require('$PKG').homepage || '')")
 
           # 获取版本号
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
@@ -57,7 +59,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "release" ]; then
             VERSION="${{ github.event.release.tag_name }}"
           else
-            VERSION="v$(node -e "console.log(require('./package.json').version)")"
+            VERSION="v$(node -e "console.log(require('$PKG').version)")"
           fi
           CLEAN_VERSION=$(echo $VERSION | sed 's/^v//')
 
