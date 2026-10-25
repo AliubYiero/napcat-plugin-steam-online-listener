@@ -9,7 +9,10 @@ import {
     sendPrivateMessage,
 } from '../handlers/utils';
 import type { SteamBindItem } from '../types';
-import { formatPlayTime } from '../utils/format';
+import {
+    formatPlayTime,
+    getChinaDateKey,
+} from '../utils/format';
 import {
     createNextDelay,
     isAlignedInterval,
@@ -38,6 +41,10 @@ class SteamPollingService {
     private pollingTimer: NodeJS.Timeout | null = null;
     private isPollingActive = false;
     private lastPollDate: string = ''; // 上次轮询日期
+    /** 跨天时欠下的待生成日报日期键 */
+    private pendingReportDate: string = '';
+    /** 为待生成日报已等待的轮数 */
+    private reportWaitRounds = 0;
     /** 代际令牌: 每次启动/停止自增, 使在途轮询的旧循环失效 */
     private generation = 0;
     /** 当前有效轮询间隔（秒） */
@@ -201,29 +208,19 @@ class SteamPollingService {
         try {
             pluginState.logger.debug('开始执行 Steam 状态轮询');
 
-            // 检测日期变化（使用本地时区）
-            const today = new Date()
-                .toLocaleDateString('zh-CN')
-                .replace(/\//g, '-');
+            // 检测日期变化（中国时区）
+            const today = getChinaDateKey();
             if (this.lastPollDate && this.lastPollDate !== today) {
                 pluginState.logger.info(
-                    '[SteamPollingService] 检测到日期变化，执行每日报告和午夜快照',
+                    '[SteamPollingService] 检测到日期变化，准备生成昨日报告',
                 );
-
-                // 1. 最先执行：生成并推送昨日活动报告
-                await steamReportService.generateAndPushDailyReport(
-                    this.lastPollDate,
-                );
-
-                // 2. 记录昨天的最终状态（午夜快照，使用实际状态）
-                const yesterdayCache =
-                    steamCacheService.getCurrentCache();
-                timelineService.midnightSnapshot(yesterdayCache);
-
-                // 3. 检查并归档旧日志
-                timelineService.checkAndArchive();
+                this.pendingReportDate = this.lastPollDate;
+                this.reportWaitRounds = 0;
             }
             this.lastPollDate = today;
+
+            // 日报需等误报检测的待确认事件落定后再生成
+            await this.flushDailyReport();
 
             // 获取所有已绑定的 Steam 数据（不区分来源）
             const allBindItems = this.getAllSteamBindItems();
@@ -314,6 +311,40 @@ class SteamPollingService {
                 error,
             );
         }
+    }
+
+    /**
+     * 生成跨天欠下的日报
+     *
+     * 误报检测会把确认后的事件时刻回填为首次检出时刻, 极晚确认的事件
+     * 可能仍属于昨天。因此等待确认队列清空后再生成; 为避免午夜后新
+     * 事件无限推迟, 最多等待 threshold + 1 轮。
+     */
+    private async flushDailyReport(): Promise<void> {
+        if (!this.pendingReportDate) return;
+
+        const pendingCount = falsePositiveService.getPendingCount();
+        const maxWaitRounds =
+            falsePositiveService.getEffectiveThreshold() + 1;
+
+        if (
+            pendingCount > 0 &&
+            this.reportWaitRounds < maxWaitRounds
+        ) {
+            this.reportWaitRounds += 1;
+            pluginState.logger.debug(
+                `[SteamPollingService] 待确认 ${pendingCount} 个，日报延后生成 (${this.reportWaitRounds}/${maxWaitRounds})`,
+            );
+            return;
+        }
+
+        const reportDate = this.pendingReportDate;
+        this.pendingReportDate = '';
+        this.reportWaitRounds = 0;
+
+        await steamReportService.generateAndPushDailyReport(
+            reportDate,
+        );
     }
 
     /**

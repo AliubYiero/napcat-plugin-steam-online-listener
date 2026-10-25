@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     formatPlayTime,
+    getChinaDateKey,
     getChinaDateParts,
+    getChinaMidnightTimestamp,
 } from '../../src/utils/format';
 
 describe('formatPlayTime', () => {
@@ -100,5 +102,40 @@ describe('getChinaDateParts', () => {
         expect(parts.hour).toMatch(/^\d{2}$/);
         expect(parts.minute).toMatch(/^\d{2}$/);
         expect(parts.second).toMatch(/^\d{2}$/);
+    });
+});
+
+describe('getChinaDateKey', () => {
+    it('应返回零填充的日期键', () => {
+        expect(
+            getChinaDateKey(new Date('2026-03-07T14:30:00Z')),
+        ).toBe('2026-03-07');
+    });
+
+    it('单数月日也补零', () => {
+        expect(
+            getChinaDateKey(new Date('2026-01-05T02:00:00Z')),
+        ).toBe('2026-01-05');
+    });
+
+    it('按中国时区跨日', () => {
+        // 2026-03-07 16:30 UTC = 2026-03-08 00:30 中国
+        expect(
+            getChinaDateKey(new Date('2026-03-07T16:30:00Z')),
+        ).toBe('2026-03-08');
+    });
+});
+
+describe('getChinaMidnightTimestamp', () => {
+    it('应返回中国时间当日 00:00 的时间戳', () => {
+        expect(getChinaMidnightTimestamp('2026-03-07')).toBe(
+            Date.UTC(2026, 2, 7) - 8 * 3600 * 1000,
+        );
+    });
+
+    it('应正确处理跨月', () => {
+        expect(getChinaMidnightTimestamp('2026-01-01')).toBe(
+            Date.UTC(2026, 0, 1) - 8 * 3600 * 1000,
+        );
     });
 });

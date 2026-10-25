@@ -75,3 +75,22 @@ export function getChinaDateParts(date?: Date): ChinaDateParts {
         second: map.get('second') ?? '',
     };
 }
+
+/**
+ * 中国标准时间（Asia/Shanghai）的日期键 (YYYY-MM-DD, 零填充)
+ *
+ * 日志文件名、日报查找、跨天判定与归档扫描共用此口径。
+ */
+export function getChinaDateKey(date?: Date): string {
+    const parts = getChinaDateParts(date);
+    return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+/**
+ * 指定日期键在中国标准时间的 00:00:00.000 时间戳
+ * @param dateKey 日期键 (YYYY-MM-DD)
+ */
+export function getChinaMidnightTimestamp(dateKey: string): number {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return Date.UTC(year, month - 1, day) - 8 * 60 * 60 * 1000;
+}

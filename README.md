@@ -211,8 +211,8 @@ napcat-plugin-steam-online-listener/
 - `steam-bind-data.json` - Steam 绑定数据
 - `steam-status-cache.json` - 状态缓存数据
 - `steam-game-names.json` - 游戏名称数据
-- `steam-status-log-YYYY-M-D.json` - 时间线日志（按天分割）
-- `archives/` - 归档的旧日志文件（ZIP 格式）
+- `steam-status-log-YYYY-MM-DD.json` - 时间线日志（按天分割，仅保留今天与昨天）
+- `archives/` - 归档的旧日志（`steam-status-log-YYYY-MM-DD.json.gz`；旧版本生成的 ZIP 也会原样保留）
 
 ## 数据备份
 
@@ -273,7 +273,7 @@ pnpm run check
 4. **多来源绑定**: 同一 Steam 用户可以在多个群组或私聊中绑定，每个来源有独立的自定义昵称
 5. **解绑权限**: 用户只能解绑自己来源的绑定数据，不能解绑其他来源的数据
 6. **管理员权限**: 只有配置的管理员用户可以使用特殊命令（如手动触发轮询、管理管理员）
-7. **时间线日志**: 日志文件按天分割，7天后自动归档为 ZIP，归档文件存放在 `archives/` 目录
+7. **时间线日志**: 日志按天分割，数据目录只保留今天与昨天两个文件，更早的逐日 gzip 归档到 `archives/` 目录（插件不读取归档，需要时请自行解压）
 8. **每日报告**: 日期变化时自动生成并推送前一天的活动报告
 9. **中国时区**: 时间线日志和每日报告使用中国标准时间（Asia/Shanghai，UTC+8）进行日期计算
 

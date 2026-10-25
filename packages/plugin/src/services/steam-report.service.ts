@@ -15,6 +15,7 @@ import type {
     TimelineLog,
     TimelineLogEntry,
 } from '../types';
+import { getChinaMidnightTimestamp } from '../utils/format';
 import {
     collectPlayDurations,
     type PlayEventInput,
@@ -353,7 +354,7 @@ export async function generateSteamReport(
 class SteamReportService {
     /**
      * 生成并推送每日活动报告
-     * @param yesterdayDate 昨日日期字符串，格式如 "2026-3-6"
+     * @param yesterdayDate 昨日日期键，格式如 "2026-03-06"
      */
     async generateAndPushDailyReport(
         yesterdayDate: string,
@@ -451,20 +452,13 @@ class SteamReportService {
     }
 
     /**
-     * 获取指定日期次日 00:00 的时间戳（即该天的 24:00）
+     * 获取指定日期次日 00:00 的时间戳（即该天的 24:00, 中国时区）
      */
     private getMidnightTimestamp(dateStr: string): number {
-        const parts = dateStr.split('-').map(Number);
-        const nextDay = new Date(
-            parts[0],
-            parts[1] - 1,
-            parts[2] + 1,
-            0,
-            0,
-            0,
-            0,
+        return (
+            getChinaMidnightTimestamp(dateStr) +
+            24 * 60 * 60 * 1000
         );
-        return nextDay.getTime();
     }
 
     /**

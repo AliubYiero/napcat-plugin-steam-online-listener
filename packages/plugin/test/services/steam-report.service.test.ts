@@ -97,7 +97,7 @@ describe('generateSteamReport 宽度', () => {
 
 // ==================== 日报入选规则 ====================
 
-const REPORT_DATE = '2026-3-6';
+const REPORT_DATE = '2026-03-06';
 const T0 = Date.parse('2026-03-06T02:00:00Z');
 const END_TIME = T0 + 6 * 3600 * 1000;
 

@@ -15,7 +15,7 @@ describe('calculateReportRange', () => {
 
         const range = calculateReportRange('today');
 
-        expect(range.dateStr).toBe('2026-3-7');
+        expect(range.dateStr).toBe('2026-03-07');
         expect(range.endTime).toBe(
             Date.parse('2026-03-07T14:30:00Z'),
         );
@@ -28,7 +28,7 @@ describe('calculateReportRange', () => {
 
         const range = calculateReportRange('yesterday');
 
-        expect(range.dateStr).toBe('2026-3-6');
+        expect(range.dateStr).toBe('2026-03-06');
         expect(range.endTime).toBe(
             Date.UTC(2026, 2, 7) - 8 * 3600 * 1000,
         );
@@ -39,10 +39,10 @@ describe('calculateReportRange', () => {
         freezeSystemTime(new Date('2026-04-01T02:00:00Z')); // 中国 2026-04-01 10:00
 
         expect(calculateReportRange('today').dateStr).toBe(
-            '2026-4-1',
+            '2026-04-01',
         );
         expect(calculateReportRange('yesterday').dateStr).toBe(
-            '2026-3-31',
+            '2026-03-31',
         );
     });
 
@@ -51,10 +51,10 @@ describe('calculateReportRange', () => {
         freezeSystemTime(new Date('2026-03-07T16:30:00Z'));
 
         expect(calculateReportRange('today').dateStr).toBe(
-            '2026-3-8',
+            '2026-03-08',
         );
         expect(calculateReportRange('yesterday').dateStr).toBe(
-            '2026-3-7',
+            '2026-03-07',
         );
     });
 });

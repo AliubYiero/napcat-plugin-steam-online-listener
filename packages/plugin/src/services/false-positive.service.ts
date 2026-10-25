@@ -193,6 +193,11 @@ class FalsePositiveService {
         return this.pending.size;
     }
 
+    /** 当前生效的确认轮数 (0 表示关闭) */
+    getEffectiveThreshold(): number {
+        return this.getThreshold();
+    }
+
     /** 清空待确认 (供测试与重置使用) */
     clearPending(): void {
         this.pending.clear();

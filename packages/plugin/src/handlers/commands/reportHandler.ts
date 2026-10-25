@@ -6,9 +6,14 @@
 
 import { pluginState } from '../../core/state';
 import { steamReportService } from '../../services/steam-report.service';
-import { getChinaDateParts } from '../../utils/format';
+import {
+    getChinaDateKey,
+    getChinaMidnightTimestamp,
+} from '../../utils/format';
 import type { InstructionHandler } from '../instructionRegistry';
 import { sendReply } from '../utils';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const reportHandler: InstructionHandler = async (
     ctx,
@@ -70,34 +75,19 @@ export function calculateReportRange(day: string): {
     dateLabel: string;
 } {
     const now = new Date();
-    const parts = getChinaDateParts(now);
-    const year = Number(parts.year);
-    const month = Number(parts.month) - 1; // Date 构造函数月份从 0 开始
-    const date = Number(parts.day);
-
-    const todayStr = `${year}-${month + 1}-${date}`;
+    const todayKey = getChinaDateKey(now);
 
     if (day === 'today') {
         return {
-            dateStr: todayStr,
+            dateStr: todayKey,
             endTime: now.getTime(),
             dateLabel: '今日',
         };
-    } else {
-        const yesterdayMs = now.getTime() - 86400000;
-        const yesterdayParts = getChinaDateParts(
-            new Date(yesterdayMs),
-        );
-        const yesterdayStr = `${Number(yesterdayParts.year)}-${Number(yesterdayParts.month)}-${Number(yesterdayParts.day)}`;
-
-        // 今日 0:00 时间戳 (中国时区)
-        const startOfTodayUTC =
-            Date.UTC(year, month, date) - 8 * 60 * 60 * 1000;
-
-        return {
-            dateStr: yesterdayStr,
-            endTime: startOfTodayUTC,
-            dateLabel: '昨日',
-        };
     }
+
+    return {
+        dateStr: getChinaDateKey(new Date(now.getTime() - DAY_MS)),
+        endTime: getChinaMidnightTimestamp(todayKey),
+        dateLabel: '昨日',
+    };
 }

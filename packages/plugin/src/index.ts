@@ -28,6 +28,7 @@ import { handleMessage } from './handlers/messageHandler';
 import { EventType } from './onebotEvent';
 import { registerApiRoutes } from './services/api-service';
 import { steamPollingService } from './services/steam-polling.service';
+import { timelineService } from './services/timeline.service';
 import type { PluginConfig } from './types';
 
 // ==================== 配置 UI Schema ====================
@@ -59,7 +60,10 @@ export const plugin_init: PluginModule['plugin_init'] = async (
         // 4. 注册 API 路由
         registerApiRoutes(ctx);
 
-        // 5. 启动 Steam 状态轮询服务
+        // 5. 启动时间线维护（同步命名、启动快照、归档、跨天定时器）
+        timelineService.start();
+
+        // 6. 启动 Steam 状态轮询服务
         steamPollingService.startPolling();
 
         ctx.logger.info('插件初始化完成');
@@ -100,7 +104,10 @@ export const plugin_cleanup: PluginModule['plugin_cleanup'] = async (
         // 1. 停止 Steam 状态轮询服务
         steamPollingService.stopPolling();
 
-        // 2. 清理全局状态（包括其它定时器与统计落盘）
+        // 2. 停止时间线跨天定时器
+        timelineService.stop();
+
+        // 3. 清理全局状态（包括其它定时器与统计落盘）
         pluginState.cleanup();
         ctx.logger.info('插件已卸载');
     } catch (e) {
