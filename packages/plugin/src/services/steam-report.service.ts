@@ -456,8 +456,7 @@ class SteamReportService {
      */
     private getMidnightTimestamp(dateStr: string): number {
         return (
-            getChinaMidnightTimestamp(dateStr) +
-            24 * 60 * 60 * 1000
+            getChinaMidnightTimestamp(dateStr) + 24 * 60 * 60 * 1000
         );
     }
 

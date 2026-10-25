@@ -101,7 +101,9 @@ class TimelineService {
 
         const remainder = Date.now() % TICK_INTERVAL_MS;
         const delay =
-            remainder === 0 ? TICK_INTERVAL_MS : TICK_INTERVAL_MS - remainder;
+            remainder === 0
+                ? TICK_INTERVAL_MS
+                : TICK_INTERVAL_MS - remainder;
 
         this.tickTimer = setTimeout(() => this.onTick(), delay);
         pluginState.timers.set(TICK_TIMER_ID, this.tickTimer);
@@ -416,15 +418,15 @@ class TimelineService {
         )}-${Number(month)}-${Number(day)}.json`;
 
         if (legacyName === canonicalName) return;
-        if (!fs.existsSync(path.join(this.logDir, legacyName))) return;
+        if (!fs.existsSync(path.join(this.logDir, legacyName)))
+            return;
 
-        this.mergeFilesIntoCanonical(dateKey, [
-            canonicalName,
-            legacyName,
-        ].filter(
-            (name) =>
+        this.mergeFilesIntoCanonical(
+            dateKey,
+            [canonicalName, legacyName].filter((name) =>
                 fs.existsSync(path.join(this.logDir, name)),
-        ));
+            ),
+        );
 
         pluginState.logger.info(
             `[TimelineService] 已把 ${legacyName} 并入 ${canonicalName}`,

@@ -30,9 +30,9 @@ import type { FromInfo, PluginConfig } from '../types';
 import { getChinaDateParts } from '../utils/format';
 import { gameNameService } from './game-name.service';
 import { sessionConfigService } from './sessionConfigService';
+import { steamService } from './steam.service';
 import { steamAvatarService } from './steam-avatar.service';
 import { steamBindService } from './steam-bind.service';
-import { steamService } from './steam.service';
 
 /**
  * 获取中国时区（UTC+8）的时间戳字符串
@@ -268,10 +268,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                     return res.send(result.image.buffer);
             }
         } catch (error) {
-            pluginState.logger.error(
-                '获取 Steam 头像失败:',
-                error,
-            );
+            pluginState.logger.error('获取 Steam 头像失败:', error);
             res.status(500).json({
                 code: -1,
                 message: '获取失败',

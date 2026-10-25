@@ -141,9 +141,7 @@ class SteamAvatarService {
     }
 
     private buildEtag(face: string): string {
-        const hash = createHash('sha1')
-            .update(face)
-            .digest('hex');
+        const hash = createHash('sha1').update(face).digest('hex');
         return `"${hash}"`;
     }
 
@@ -212,10 +210,7 @@ class SteamAvatarService {
         }
 
         const lengthHeader = response.headers.get('content-length');
-        if (
-            lengthHeader &&
-            Number(lengthHeader) > MAX_IMAGE_BYTES
-        ) {
+        if (lengthHeader && Number(lengthHeader) > MAX_IMAGE_BYTES) {
             throw new Error('头像文件过大');
         }
 

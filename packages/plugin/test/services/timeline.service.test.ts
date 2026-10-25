@@ -13,11 +13,7 @@ import {
 import type { SteamPlayerSummary } from '../../src/services/steam.service';
 import type { StatusChange } from '../../src/services/steam-cache.service';
 import { timelineService } from '../../src/services/timeline.service';
-import type {
-    TimelineLog,
-    TimelineLogEntry,
-} from '../../src/types';
-import { getChinaDateKey } from '../../src/utils/format';
+import type { TimelineLog, TimelineLogEntry } from '../../src/types';
 import { pluginStateStub } from '../helpers/plugin-state-mock';
 import {
     cleanupTempDirs,
@@ -72,16 +68,21 @@ function archiveDir(): string {
     return path.join(temp.dataPath, 'archives');
 }
 
-function listDataFiles(predicate = (name: string) => true): string[] {
+function listDataFiles(
+    predicate: (name: string) => boolean = () => true,
+): string[] {
     return fs
         .readdirSync(temp.dataPath)
-        .filter((name) => fs.statSync(path.join(temp.dataPath, name)).isFile())
+        .filter((name) =>
+            fs.statSync(path.join(temp.dataPath, name)).isFile(),
+        )
         .filter(predicate);
 }
 
 function listLogFiles(): string[] {
     return listDataFiles(
-        (name) => name.startsWith(LOG_PREFIX) && name.endsWith('.json'),
+        (name) =>
+            name.startsWith(LOG_PREFIX) && name.endsWith('.json'),
     );
 }
 
@@ -108,7 +109,9 @@ function readLogFile(name: string): TimelineLog {
 function readArchive(name: string): TimelineLog {
     return JSON.parse(
         zlib
-            .gunzipSync(fs.readFileSync(path.join(archiveDir(), name)))
+            .gunzipSync(
+                fs.readFileSync(path.join(archiveDir(), name)),
+            )
             .toString('utf-8'),
     ) as TimelineLog;
 }
@@ -182,8 +185,18 @@ describe('TimelineService — record', () => {
     it('按事件时刻的中国日期分文件：23:59 与 00:01 落到不同文件', () => {
         const chinaMidnight = Date.parse('2026-03-07T16:00:00Z');
         timelineService.record([
-            makeChange('111', 'online', undefined, chinaMidnight - 60000),
-            makeChange('111', 'offline', undefined, chinaMidnight + 60000),
+            makeChange(
+                '111',
+                'online',
+                undefined,
+                chinaMidnight - 60000,
+            ),
+            makeChange(
+                '111',
+                'offline',
+                undefined,
+                chinaMidnight + 60000,
+            ),
         ]);
 
         expect(listLogFiles().sort()).toEqual([
@@ -209,7 +222,10 @@ describe('TimelineService — record', () => {
             `${LOG_PREFIX}-${TODAY_KEY}.json`,
         ]);
         const log = readLogFile(`${LOG_PREFIX}-${TODAY_KEY}.json`);
-        expect(log.d.map((entry) => entry[0])).toEqual(['999', '111']);
+        expect(log.d.map((entry) => entry[0])).toEqual([
+            '999',
+            '111',
+        ]);
     });
 });
 
@@ -255,7 +271,10 @@ describe('TimelineService — startupSnapshot', () => {
         });
 
         const log = readLogFile(`${LOG_PREFIX}-${TODAY_KEY}.json`);
-        expect(log.d.map((entry) => entry[0])).toEqual(['111', '222']);
+        expect(log.d.map((entry) => entry[0])).toEqual([
+            '111',
+            '222',
+        ]);
         expect(log.d[1][1]).toBe('offline');
         expect(log.d[1][3]).toBe(FIXED_NOW);
     });
@@ -374,7 +393,10 @@ describe('TimelineService — checkAndArchive', () => {
 
     it('原子写残留的 .tmp 不归档', () => {
         fs.writeFileSync(
-            path.join(temp.dataPath, `${LOG_PREFIX}-2026-03-01.json.tmp`),
+            path.join(
+                temp.dataPath,
+                `${LOG_PREFIX}-2026-03-01.json.tmp`,
+            ),
             '{}',
             'utf-8',
         );
@@ -390,7 +412,10 @@ describe('TimelineService — checkAndArchive', () => {
             ['222', 'offline', null, 2000],
         ]);
         fs.writeFileSync(
-            path.join(archiveDir(), `${LOG_PREFIX}-2026-03-01.json.gz`),
+            path.join(
+                archiveDir(),
+                `${LOG_PREFIX}-2026-03-01.json.gz`,
+            ),
             zlib.gzipSync(Buffer.from('old-content')),
         );
 
@@ -428,7 +453,10 @@ describe('TimelineService — checkAndArchive', () => {
         );
         fs.writeFileSync(sourcePath, content, 'utf-8');
         fs.writeFileSync(
-            path.join(archiveDir(), `${LOG_PREFIX}-2026-03-01.json.gz`),
+            path.join(
+                archiveDir(),
+                `${LOG_PREFIX}-2026-03-01.json.gz`,
+            ),
             zlib.gzipSync(Buffer.from(content)),
         );
 

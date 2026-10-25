@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { SteamBindItem } from 'shared';
+import { describe, expect, it, vi } from 'vitest';
 import {
     generateSteamReport,
     steamReportService,
@@ -101,7 +101,10 @@ const REPORT_DATE = '2026-03-06';
 const T0 = Date.parse('2026-03-06T02:00:00Z');
 const END_TIME = T0 + 6 * 3600 * 1000;
 
-function makeBind(steamId: string, personName: string): SteamBindItem {
+function makeBind(
+    steamId: string,
+    personName: string,
+): SteamBindItem {
     return {
         steamId,
         personName,
@@ -153,8 +156,7 @@ function stubReportBackend(
                     json: async () => ({
                         code: 0,
                         data: {
-                            imageBase64:
-                                'data:image/png;base64,QUJD',
+                            imageBase64: 'data:image/png;base64,QUJD',
                             format: 'png',
                         },
                     }),
@@ -206,7 +208,9 @@ describe('日报入选规则', () => {
         expect(svg).not.toContain('zero-app');
         expect(svg).not.toMatch(/>\s*0m 0s\s*</);
 
-        expect(pluginStateStub.ctx.actions.call).toHaveBeenCalledTimes(1);
+        expect(
+            pluginStateStub.ctx.actions.call,
+        ).toHaveBeenCalledTimes(1);
         expect(pluginStateStub.ctx.actions.call).toHaveBeenCalledWith(
             'send_group_msg',
             expect.objectContaining({ group_id: '123456' }),
@@ -236,6 +240,8 @@ describe('日报入选规则', () => {
         ).resolves.toBe(false);
 
         expect(renderedSvgs).toHaveLength(0);
-        expect(pluginStateStub.ctx.actions.call).not.toHaveBeenCalled();
+        expect(
+            pluginStateStub.ctx.actions.call,
+        ).not.toHaveBeenCalled();
     });
 });

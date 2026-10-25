@@ -9,10 +9,7 @@ import {
     sendPrivateMessage,
 } from '../handlers/utils';
 import type { SteamBindItem } from '../types';
-import {
-    formatPlayTime,
-    getChinaDateKey,
-} from '../utils/format';
+import { formatPlayTime, getChinaDateKey } from '../utils/format';
 import {
     createNextDelay,
     isAlignedInterval,
@@ -20,9 +17,9 @@ import {
 import { escapeXml } from '../utils/svg-render';
 import { falsePositiveService } from './false-positive.service';
 import { gameNameService } from './game-name.service.js';
+import { steamService } from './steam.service';
 import { steamAvatarService } from './steam-avatar.service';
 import { steamBindService } from './steam-bind.service';
-import { steamService } from './steam.service';
 import {
     type StatusChange,
     type StatusChanges,

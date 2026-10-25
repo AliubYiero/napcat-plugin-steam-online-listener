@@ -7,8 +7,8 @@ import {
     it,
     vi,
 } from 'vitest';
-import { steamAvatarService } from '../../src/services/steam-avatar.service';
 import type { SteamPlayerSummary } from '../../src/services/steam.service';
+import { steamAvatarService } from '../../src/services/steam-avatar.service';
 import { steamBindService } from '../../src/services/steam-bind.service';
 import { pluginStateStub } from '../helpers/plugin-state-mock';
 import {
@@ -21,14 +21,10 @@ import {
 let temp: TempDir;
 
 const STEAM_ID = '76561198000000001';
-const FACE_A =
-    'https://avatars.steamstatic.com/aaa_medium.jpg';
-const FACE_B =
-    'https://avatars.steamstatic.com/bbb_medium.jpg';
-const FACE_C =
-    'https://avatars.steamstatic.com/ccc_medium.jpg';
-const FACE_D =
-    'https://avatars.steamstatic.com/ddd_medium.jpg';
+const FACE_A = 'https://avatars.steamstatic.com/aaa_medium.jpg';
+const FACE_B = 'https://avatars.steamstatic.com/bbb_medium.jpg';
+const FACE_C = 'https://avatars.steamstatic.com/ccc_medium.jpg';
+const FACE_D = 'https://avatars.steamstatic.com/ddd_medium.jpg';
 
 beforeAll(() => {
     temp = makeTempDir();
@@ -99,37 +95,25 @@ describe('SteamAvatarService — 取图', () => {
     });
 
     it('成功回源并缓存, 第二次不再请求', async () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_A },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_A }]);
         const fetchFn = stubImageFetch();
 
-        const first = await steamAvatarService.getAvatar(
-            STEAM_ID,
-        );
+        const first = await steamAvatarService.getAvatar(STEAM_ID);
         expect(first.kind).toBe('image');
         if (first.kind !== 'image') return;
         expect(first.image.contentType).toBe('image/jpeg');
-        expect(first.image.buffer).toEqual(
-            Buffer.from([1, 2, 3]),
-        );
+        expect(first.image.buffer).toEqual(Buffer.from([1, 2, 3]));
 
-        const second = await steamAvatarService.getAvatar(
-            STEAM_ID,
-        );
+        const second = await steamAvatarService.getAvatar(STEAM_ID);
         expect(second.kind).toBe('image');
         expect(fetchFn).toHaveBeenCalledTimes(1);
     });
 
     it('If-None-Match 命中返回 not-modified', async () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_B },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_B }]);
         const fetchFn = stubImageFetch();
 
-        const first = await steamAvatarService.getAvatar(
-            STEAM_ID,
-        );
+        const first = await steamAvatarService.getAvatar(STEAM_ID);
         expect(first.kind).toBe('image');
         if (first.kind !== 'image') return;
 
@@ -145,9 +129,7 @@ describe('SteamAvatarService — 取图', () => {
     });
 
     it('上游失败且无缓存返回 upstream-error', async () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_C },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_C }]);
         vi.stubGlobal(
             'fetch',
             vi.fn().mockRejectedValue(new Error('upstream down')),
@@ -159,9 +141,7 @@ describe('SteamAvatarService — 取图', () => {
     });
 
     it('上游失败时返回过期缓存', async () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_D },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_D }]);
         const fetchFn = stubImageFetch();
         await steamAvatarService.getAvatar(STEAM_ID);
 
@@ -169,9 +149,7 @@ describe('SteamAvatarService — 取图', () => {
         vi.setSystemTime(Date.now() + 25 * 60 * 60 * 1000);
         fetchFn.mockRejectedValue(new Error('upstream down'));
 
-        const result = await steamAvatarService.getAvatar(
-            STEAM_ID,
-        );
+        const result = await steamAvatarService.getAvatar(STEAM_ID);
         expect(result.kind).toBe('image');
         if (result.kind !== 'image') return;
         expect(result.image.stale).toBe(true);
@@ -181,23 +159,17 @@ describe('SteamAvatarService — 取图', () => {
 
 describe('SteamAvatarService — syncFaces', () => {
     it('头像变化时写回绑定', () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_A },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_A }]);
 
-        steamAvatarService.syncFaces([
-            summary(STEAM_ID, FACE_B),
-        ]);
+        steamAvatarService.syncFaces([summary(STEAM_ID, FACE_B)]);
 
-        expect(
-            steamBindService.findBySteamId(STEAM_ID)?.face,
-        ).toBe(FACE_B);
+        expect(steamBindService.findBySteamId(STEAM_ID)?.face).toBe(
+            FACE_B,
+        );
     });
 
     it('相同或空头像不写盘', () => {
-        steamBindService.save([
-            { steamId: STEAM_ID, face: FACE_A },
-        ]);
+        steamBindService.save([{ steamId: STEAM_ID, face: FACE_A }]);
         pluginStateStub.saveDataFile.mockClear();
 
         steamAvatarService.syncFaces([
@@ -205,20 +177,14 @@ describe('SteamAvatarService — syncFaces', () => {
             summary(STEAM_ID, ''),
         ]);
 
-        expect(
-            pluginStateStub.saveDataFile,
-        ).not.toHaveBeenCalled();
+        expect(pluginStateStub.saveDataFile).not.toHaveBeenCalled();
     });
 
     it('未绑定用户忽略', () => {
         pluginStateStub.saveDataFile.mockClear();
 
-        steamAvatarService.syncFaces([
-            summary(STEAM_ID, FACE_B),
-        ]);
+        steamAvatarService.syncFaces([summary(STEAM_ID, FACE_B)]);
 
-        expect(
-            pluginStateStub.saveDataFile,
-        ).not.toHaveBeenCalled();
+        expect(pluginStateStub.saveDataFile).not.toHaveBeenCalled();
     });
 });
