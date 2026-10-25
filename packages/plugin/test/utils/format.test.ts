@@ -50,6 +50,14 @@ describe('formatPlayTime', () => {
         vi.spyOn(Date, 'now').mockReturnValue(now);
         expect(formatPlayTime(now - 3610000)).toBe('1小时10秒');
     });
+
+    it('应使用显式结束时刻结算', () => {
+        expect(formatPlayTime(1000, 61000)).toBe('1分钟');
+    });
+
+    it('结束时刻早于开始时刻时按 0 结算', () => {
+        expect(formatPlayTime(2000, 1000)).toBe('0秒');
+    });
 });
 
 describe('getChinaDateParts', () => {

@@ -37,7 +37,7 @@ function poll(summaries: SteamPlayerSummary[]) {
     );
     steamCacheService.updateCacheBatch(
         updatable,
-        resolution.confirmedTimestamps,
+        resolution.confirmed,
     );
     return resolution;
 }
@@ -183,7 +183,7 @@ describe('FalsePositiveService', () => {
             expect(res3.confirmed).toHaveLength(1);
         });
 
-        it('确认时回填首次检测时间戳', () => {
+        it('确认时回填状态事件时刻', () => {
             setThreshold(1);
             steamCacheService.updateCacheBatch([
                 inGamePlayer('123', 'Dota 2', '570'),
@@ -195,7 +195,7 @@ describe('FalsePositiveService', () => {
 
             nowSpy.mockReturnValue(2000);
             const res = poll([offlinePlayer('123')]);
-            expect(res.confirmedTimestamps.get('123')).toBe(1000);
+            expect(res.confirmed[0].detectedAt).toBe(1000);
 
             nowSpy.mockRestore();
         });

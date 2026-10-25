@@ -64,6 +64,7 @@ function makeChange(
     steamId: string,
     changeType: StatusChange['changeType'],
     gameid?: string,
+    detectedAt = 1_700_000_000_000,
 ): StatusChange {
     return {
         steamId,
@@ -72,6 +73,7 @@ function makeChange(
             steamid: steamId,
             gameid,
         } as unknown as SteamPlayerSummary,
+        detectedAt,
         changeType,
     } as StatusChange;
 }
@@ -115,7 +117,7 @@ describe('TimelineService — record', () => {
         expect(log.d[0][0]).toBe('111');
         expect(log.d[0][1]).toBe('online');
         expect(log.d[0][2]).toBe('570');
-        expect(typeof log.d[0][3]).toBe('number');
+        expect(log.d[0][3]).toBe(1_700_000_000_000);
     });
 
     it('同一天多次 record 会累加', () => {

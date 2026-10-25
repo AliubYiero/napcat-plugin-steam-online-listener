@@ -3,12 +3,16 @@
  */
 
 /**
- * 将游戏开始时间戳转换为可读的游玩时长字符串
- * @param gameStartTime 游戏开始时间戳（毫秒）
+ * 将场次开始时间戳转换为可读的游玩时长字符串
+ * @param gameStartTime 场次开始时间戳（毫秒）
+ * @param endTime 结算时刻（毫秒），默认当前时间
  * @returns 格式化的时长字符串，如 "1小时30分钟20秒"
  */
-export function formatPlayTime(gameStartTime: number): string {
-    const playTimeMs = Date.now() - gameStartTime;
+export function formatPlayTime(
+    gameStartTime: number,
+    endTime: number = Date.now(),
+): string {
+    const playTimeMs = Math.max(0, endTime - gameStartTime);
     const playTimeMinutes = Math.floor(playTimeMs / 60000);
     const playTimeHours = Math.floor(playTimeMinutes / 60);
     const playTimeSeconds = Math.floor((playTimeMs % 60000) / 1000);

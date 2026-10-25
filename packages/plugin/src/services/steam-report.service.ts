@@ -15,6 +15,10 @@ import type {
     TimelineLog,
     TimelineLogEntry,
 } from '../types';
+import {
+    collectPlayDurations,
+    type PlayEventInput,
+} from '../utils/play-session';
 import { escapeXml } from '../utils/svg-render';
 import { gameNameService } from './game-name.service.js';
 import {
@@ -32,7 +36,6 @@ const ONLINE_STATES = new Set([
     'switchGame',
     'other',
 ]);
-const GAME_START_STATES = new Set(['ingame', 'switchGame']);
 const OFFLINE_STATES = new Set(['offline', 'quitGame']);
 
 // ==================== SVG 报告生成 ====================
@@ -524,12 +527,8 @@ class SteamReportService {
         games: Map<string, number>;
     } {
         let onlineDuration = 0;
-        let playedDuration = 0;
-        const games = new Map<string, number>();
-
         let onlineStartTime: number | null = null;
-        let gameStartTime: number | null = null;
-        let currentGameId: string | null = null;
+        const playEvents: PlayEventInput[] = [];
 
         // 使用自定义结束时间或默认的午夜时间
         const endTime = customEndTime ?? midnightTs;
@@ -540,49 +539,14 @@ class SteamReportService {
             // 跳过超过结束时间的事件
             if (updateTime > endTime) continue;
 
+            playEvents.push({ changeType, gameId, at: updateTime });
+
             // 处理在线状态开始
             if (
                 ONLINE_STATES.has(changeType) &&
                 onlineStartTime === null
             ) {
                 onlineStartTime = updateTime;
-            }
-
-            // 处理游戏开始
-            if (GAME_START_STATES.has(changeType) && gameId) {
-                // 如果之前在玩其他游戏，先结算
-                if (gameStartTime !== null && currentGameId) {
-                    const duration = Math.floor(
-                        (updateTime - gameStartTime) / 1000,
-                    );
-                    games.set(
-                        currentGameId,
-                        (games.get(currentGameId) || 0) + duration,
-                    );
-                    playedDuration += duration;
-                }
-                gameStartTime = updateTime;
-                currentGameId = gameId;
-            }
-
-            // 处理游戏结束（不含 switchGame，switchGame 在上面已处理切换）
-            if (
-                (changeType === 'outgame' ||
-                    changeType === 'quitGame' ||
-                    changeType === 'offline') &&
-                gameStartTime !== null &&
-                currentGameId
-            ) {
-                const duration = Math.floor(
-                    (updateTime - gameStartTime) / 1000,
-                );
-                games.set(
-                    currentGameId,
-                    (games.get(currentGameId) || 0) + duration,
-                );
-                playedDuration += duration;
-                gameStartTime = null;
-                currentGameId = null;
             }
 
             // 处理离线
@@ -597,22 +561,17 @@ class SteamReportService {
             }
         }
 
-        // 未关闭的时间段截止到结束时间
+        // 未关闭的在线时段截止到结束时间
         if (onlineStartTime !== null) {
             onlineDuration += Math.floor(
                 (endTime - onlineStartTime) / 1000,
             );
         }
-        if (gameStartTime !== null && currentGameId) {
-            const duration = Math.floor(
-                (endTime - gameStartTime) / 1000,
-            );
-            games.set(
-                currentGameId,
-                (games.get(currentGameId) || 0) + duration,
-            );
-            playedDuration += duration;
-        }
+
+        const { total: playedDuration, games } = collectPlayDurations(
+            playEvents,
+            endTime,
+        );
 
         return { onlineDuration, playedDuration, games };
     }

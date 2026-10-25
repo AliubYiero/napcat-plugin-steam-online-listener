@@ -47,8 +47,6 @@ interface PendingChange {
 export interface FalsePositiveResolution {
     /** 本轮确认的变化 (需记录/推送/推进缓存) */
     confirmed: StatusChanges;
-    /** steamId → 首次检测时间戳 (回填日志与时长起点) */
-    confirmedTimestamps: Map<string, number>;
     /** 本轮需冻结缓存的 steamId (仍在待确认) */
     frozenSteamIds: Set<string>;
 }
@@ -84,7 +82,6 @@ class FalsePositiveService {
     ): FalsePositiveResolution {
         const now = Date.now();
         const confirmed: StatusChanges = [];
-        const confirmedTimestamps = new Map<string, number>();
         const frozenSteamIds = new Set<string>();
 
         const threshold = this.getThreshold();
@@ -94,7 +91,6 @@ class FalsePositiveService {
             this.pending.clear();
             return {
                 confirmed: changes,
-                confirmedTimestamps,
                 frozenSteamIds,
             };
         }
@@ -140,12 +136,9 @@ class FalsePositiveService {
                 pending.change = change;
                 pending.observations += 1;
                 if (pending.observations >= threshold + 1) {
-                    // 达到确认次数
+                    // 达到确认次数: 回填首次检出时刻
+                    change.detectedAt = pending.firstDetectedAt;
                     confirmed.push(change);
-                    confirmedTimestamps.set(
-                        steamId,
-                        pending.firstDetectedAt,
-                    );
                     this.pending.delete(steamId);
                 } else {
                     frozenSteamIds.add(steamId);
@@ -187,7 +180,7 @@ class FalsePositiveService {
             );
         }
 
-        return { confirmed, confirmedTimestamps, frozenSteamIds };
+        return { confirmed, frozenSteamIds };
     }
 
     /** 是否存在待确认项 */

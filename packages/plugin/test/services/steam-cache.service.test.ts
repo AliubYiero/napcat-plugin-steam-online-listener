@@ -219,6 +219,88 @@ describe('SteamCacheService', () => {
             expect(cache['333'].gameextrainfo).toBe('CS2');
             expect(cache['333'].gameStartTime).toBeTypeOf('number');
         });
+
+        it('同一游戏内的 AFK 抖动应保留原场次起点', () => {
+            const nowSpy = vi.spyOn(Date, 'now');
+            nowSpy.mockReturnValue(1000000);
+            steamCacheService.updateCacheBatch([
+                inGamePlayer('123', 'Dota 2', '570'),
+            ]);
+            const originalStart =
+                steamCacheService.getCurrentCache()['123']
+                    .gameStartTime;
+
+            nowSpy.mockReturnValue(1600000);
+            const changes = steamCacheService.detectStatusChanges([
+                afkPlayer('123', 'Dota 2', '570'),
+            ]);
+            expect(changes[0].changeType).toBe('inAfk');
+            expect(changes[0].detectedAt).toBe(1600000);
+
+            nowSpy.mockReturnValue(1660000);
+            steamCacheService.updateCacheBatch(
+                [afkPlayer('123', 'Dota 2', '570')],
+                changes,
+            );
+
+            expect(
+                steamCacheService.getCurrentCache()['123']
+                    .gameStartTime,
+            ).toBe(originalStart);
+            nowSpy.mockRestore();
+        });
+
+        it('切换游戏时以状态事件时刻作为新场次起点', () => {
+            const nowSpy = vi.spyOn(Date, 'now');
+            nowSpy.mockReturnValue(1000000);
+            steamCacheService.updateCacheBatch([
+                inGamePlayer('123', 'Dota 2', '570'),
+            ]);
+
+            nowSpy.mockReturnValue(1600000);
+            const changes = steamCacheService.detectStatusChanges([
+                inGamePlayer('123', 'CS2', '730'),
+            ]);
+            expect(changes[0].changeType).toBe('switchGame');
+
+            nowSpy.mockReturnValue(1660000);
+            steamCacheService.updateCacheBatch(
+                [inGamePlayer('123', 'CS2', '730')],
+                changes,
+            );
+
+            expect(
+                steamCacheService.getCurrentCache()['123']
+                    .gameStartTime,
+            ).toBe(1600000);
+            nowSpy.mockRestore();
+        });
+
+        it('结束游戏事件应清除场次起点', () => {
+            const nowSpy = vi.spyOn(Date, 'now');
+            nowSpy.mockReturnValue(1000000);
+            steamCacheService.updateCacheBatch([
+                inGamePlayer('123', 'Dota 2', '570'),
+            ]);
+
+            nowSpy.mockReturnValue(1600000);
+            const changes = steamCacheService.detectStatusChanges([
+                onlinePlayer('123'),
+            ]);
+            expect(changes[0].changeType).toBe('outgame');
+
+            nowSpy.mockReturnValue(1660000);
+            steamCacheService.updateCacheBatch(
+                [onlinePlayer('123')],
+                changes,
+            );
+
+            expect(
+                steamCacheService.getCurrentCache()['123']
+                    .gameStartTime,
+            ).toBeUndefined();
+            nowSpy.mockRestore();
+        });
     });
 
     describe('detectStatusChanges — 集成测试', () => {

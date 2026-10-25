@@ -271,10 +271,9 @@ class SteamPollingService {
                                 `检测到 ${resolution.confirmed.length} 个 Steam 状态变化`,
                             );
 
-                            // 记录到时间线 (回填首次检测时刻)
+                            // 记录到时间线 (使用状态事件时刻)
                             timelineService.record(
                                 resolution.confirmed,
-                                resolution.confirmedTimestamps,
                             );
 
                             await this.handleStatusChanges(
@@ -283,7 +282,7 @@ class SteamPollingService {
                             );
                         }
 
-                        // 更新缓存 (待确认项冻结, 确认项回填游戏开始时刻)
+                        // 更新缓存 (待确认项冻结, 确认项折叠为游玩场次)
                         const updatableSummaries =
                             playerSummaries.filter(
                                 (summary) =>
@@ -293,7 +292,7 @@ class SteamPollingService {
                             );
                         steamCacheService.updateCacheBatch(
                             updatableSummaries,
-                            resolution.confirmedTimestamps,
+                            resolution.confirmed,
                         );
                     }
                 } catch (error) {
@@ -458,6 +457,7 @@ class SteamPollingService {
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
                         change.oldStatus.gameStartTime,
+                        change.detectedAt,
                     );
                     message += `（游玩时长：${playTimeStr}）`;
                 }
@@ -513,6 +513,7 @@ class SteamPollingService {
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
                         change.oldStatus.gameStartTime,
+                        change.detectedAt,
                     );
                     message += `（游玩时长：${playTimeStr}）`;
                 }
@@ -550,6 +551,7 @@ class SteamPollingService {
                 if (change.oldStatus?.gameStartTime) {
                     const playTimeStr = formatPlayTime(
                         change.oldStatus.gameStartTime,
+                        change.detectedAt,
                     );
                     message += `（游玩时长：${playTimeStr}）`;
                 }

@@ -5,6 +5,10 @@
 
 import { pluginState } from '../core/state';
 import { formatPlayTime } from '../utils/format';
+import {
+    foldPlayEvent,
+    type PlaySession,
+} from '../utils/play-session';
 import { gameNameService } from './game-name.service.js';
 import type { SteamPlayerSummary } from './steam.service';
 
@@ -39,6 +43,8 @@ export interface StatusChange {
     oldStatus: SteamStatusCacheItem | null;
     /** 新状态 */
     newStatus: SteamPlayerSummary;
+    /** 状态事件时刻 (首次检出时刻), 毫秒 */
+    detectedAt: number;
     /** 变化类型 */
     changeType:
         | 'online'
@@ -142,44 +148,41 @@ class SteamCacheService {
     /**
      * 批量更新缓存
      * @param playerSummaries 本批玩家状态
-     * @param gameStartTimeOverrides 可选: steamId → gameStartTime 覆盖值
-     *   (误报检测确认时回填首次检测时刻)
+     * @param confirmedChanges 本批已确认的变化
+     *   (携带状态事件时刻, 用于开场与误报确认后的回填)
      */
     updateCacheBatch(
         playerSummaries: SteamPlayerSummary[],
-        gameStartTimeOverrides?: ReadonlyMap<string, number>,
+        confirmedChanges: StatusChanges = [],
     ): void {
         this.ensureInitialized();
         const now = Date.now();
+        const changeBySteamId = new Map(
+            confirmedChanges.map((change) => [
+                change.steamId,
+                change,
+            ]),
+        );
 
         for (const player of playerSummaries) {
-            // 获取旧缓存数据
             const oldCache = this.cache[player.steamid];
-            const overrideStartTime = gameStartTimeOverrides?.get(
-                player.steamid,
-            );
+            const change = changeBySteamId.get(player.steamid);
+            const active = this.toActiveSession(oldCache);
 
-            // 判断是否需要更新 gameStartTime
-            let gameStartTime: number | undefined;
+            const nextActive = change
+                ? foldPlayEvent(active, {
+                      changeType: change.changeType,
+                      gameId: player.gameid,
+                      at: change.detectedAt,
+                  }).active
+                : active;
 
-            if (player.gameextrainfo) {
-                // 当前正在玩游戏
-                if (overrideStartTime !== undefined) {
-                    // 误报检测确认: 回填首次检测时刻
-                    gameStartTime = overrideStartTime;
-                } else if (
-                    oldCache?.gameextrainfo === player.gameextrainfo
-                ) {
-                    // 同一游戏，保持原来的 gameStartTime
-                    gameStartTime = oldCache.gameStartTime;
-                } else {
-                    // 新游戏，设置当前时间为 gameStartTime
-                    gameStartTime = now;
-                }
-            } else {
-                // 当前没有玩游戏，不设置 gameStartTime
-                gameStartTime = undefined;
-            }
+            // 首次观测或起点缺失: 以本轮时刻开场
+            const gameStartTime =
+                nextActive?.startAt ??
+                (player.gameextrainfo && player.gameid
+                    ? now
+                    : undefined);
 
             this.cache[player.steamid] = {
                 steamId: player.steamid,
@@ -193,6 +196,21 @@ class SteamCacheService {
         }
 
         this.saveCache(this.cache);
+    }
+
+    /**
+     * 从缓存项还原进行中的场次
+     */
+    private toActiveSession(
+        item?: SteamStatusCacheItem,
+    ): PlaySession | null {
+        if (!item?.gameid || item.gameStartTime === undefined) {
+            return null;
+        }
+        return {
+            gameId: item.gameid,
+            startAt: item.gameStartTime,
+        };
     }
 
     /**
@@ -230,6 +248,8 @@ class SteamCacheService {
             return null;
         }
 
+        const detectedAt = Date.now();
+
         // 预加载游戏名称（懒加载模式）- 如果正在玩游戏，提前获取中文名
         if (newStatus.gameid && newStatus.gameextrainfo) {
             // 异步触发，不等待结果
@@ -266,6 +286,7 @@ class SteamCacheService {
                 steamId: newStatus.steamid,
                 oldStatus,
                 newStatus,
+                detectedAt,
                 changeType: 'quitGame',
             };
         }
@@ -278,6 +299,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'online',
                 };
             }
@@ -292,6 +314,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'ingame',
                 };
             }
@@ -301,6 +324,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'inAfk',
                 };
             }
@@ -310,6 +334,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'offline',
                 };
             }
@@ -319,6 +344,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'inAfk',
                 };
             }
@@ -328,6 +354,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'outAfk',
                 };
             }
@@ -345,6 +372,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'ingame',
                 };
             }
@@ -354,6 +382,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'inAfk',
                 };
             }
@@ -363,6 +392,7 @@ class SteamCacheService {
                 if (oldStatus.gameStartTime) {
                     const playTimeStr = formatPlayTime(
                         oldStatus.gameStartTime,
+                        detectedAt,
                     );
                     pluginState.logger.info(
                         `玩家 ${newStatus.personaname} (${newStatus.steamid}) 结束了游戏 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`,
@@ -373,6 +403,7 @@ class SteamCacheService {
                     steamId: newStatus.steamid,
                     oldStatus,
                     newStatus,
+                    detectedAt,
                     changeType: 'outgame',
                 };
             }
@@ -387,6 +418,7 @@ class SteamCacheService {
             if (oldStatus.gameStartTime) {
                 const playTimeStr = formatPlayTime(
                     oldStatus.gameStartTime,
+                    detectedAt,
                 );
                 pluginState.logger.info(
                     `玩家 ${newStatus.personaname} (${newStatus.steamid}) 切换游戏，结束了 ${oldStatus.gameextrainfo}，游玩时间：${playTimeStr}`,
@@ -397,6 +429,7 @@ class SteamCacheService {
                 steamId: newStatus.steamid,
                 oldStatus,
                 newStatus,
+                detectedAt,
                 changeType: 'switchGame',
             };
         }
