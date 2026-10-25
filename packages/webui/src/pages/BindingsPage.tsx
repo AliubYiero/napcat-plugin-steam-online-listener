@@ -8,7 +8,7 @@ import {
 } from '../components/Icons';
 import { showToast } from '../hooks/useToast';
 import type { SteamBindItem } from '../types';
-import { noAuthFetch } from '../utils/api';
+import { noAuthFetch, pluginApiUrl } from '../utils/api';
 
 interface AddForm {
     steamId: string;
@@ -31,9 +31,19 @@ export default function BindingsPage() {
     const [showAdd, setShowAdd] = useState(false);
     const [form, setForm] = useState<AddForm>(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
+    const [failedAvatars, setFailedAvatars] = useState<Set<string>>(
+        new Set(),
+    );
+
+    const markAvatarFailed = useCallback((steamId: string) => {
+        setFailedAvatars((prev) =>
+            prev.has(steamId) ? prev : new Set(prev).add(steamId),
+        );
+    }, []);
 
     const fetchBinds = useCallback(async () => {
         setLoading(true);
+        setFailedAvatars(new Set());
         try {
             const res =
                 await noAuthFetch<SteamBindItem[]>('/steam-binds');
@@ -253,11 +263,23 @@ export default function BindingsPage() {
                             >
                                 <td className="py-3 px-4">
                                     <div className="flex items-center gap-3">
-                                        {bind.face ? (
+                                        {bind.face &&
+                                        !failedAvatars.has(
+                                            bind.steamId,
+                                        ) ? (
                                             <img
-                                                src={bind.face}
+                                                src={pluginApiUrl(
+                                                    `/steam-avatar/${bind.steamId}`,
+                                                )}
                                                 alt=""
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800"
+                                                onError={() =>
+                                                    markAvatarFailed(
+                                                        bind.steamId,
+                                                    )
+                                                }
                                             />
                                         ) : (
                                             <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center">

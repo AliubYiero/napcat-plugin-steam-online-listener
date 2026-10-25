@@ -76,8 +76,13 @@ _Avoid_: 把"权限档位"直接当"帮助版本"用——两者计数相同但�
 
 ### Steam 绑定 (steamBind)
 
-一条"Steam ID ↔ QQ 用户"的绑定记录, 以 `fromId` (群号) + `steamId` 定位。用户绑定后, 该 Steam 好友的上线/下线状态变化会被通知到对应会话。数据存于 `steam-bind-data.json`, 由 `steam-bind.service.ts` 读写。
-_Avoid_: "订阅""关注"——本项目术语统一用"绑定 (bind)"。
+一条"Steam ID ↔ 会话来源"的绑定记录, 以 `steamId` 定位; `from` 记录多个来源 (群或私聊) 及每个来源对该用户的自定义昵称。用户绑定后, 该 Steam 用户的上线/下线状态变化会推送到其所有来源会话。数据存于 `steam-bind-data.json`, 由 `steam-bind.service.ts` 读写。
+_Avoid_: "订阅""关注"——本项目术语统一用"绑定 (bind)"; 也不要把来源当成定位键——一个 Steam ID 可被多个来源绑定。
+
+### Steam 头像 (face)
+
+绑定用户的 Steam 资料头像, 取 64×64 的 `avatarmedium` 版本。头像随绑定记录持久化, 用于 WebUI 绑定列表与状态通知卡片; 轮询观测到新的头像地址时更新。
+_Avoid_: "头像 URL"——那只是头像的来源地址; 也不要与机器人头像、群头像混称。
 
 ### 游戏名 (gameName)
 

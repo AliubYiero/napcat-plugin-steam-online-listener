@@ -40,6 +40,13 @@ function buildUrl(base: string, path: string): string {
 }
 
 /**
+ * 拼接无鉴权 API 的同源地址, 供 img 等非 fetch 场景使用。
+ */
+export function pluginApiUrl(path: string): string {
+    return buildUrl(API_BASE_NO_AUTH, path);
+}
+
+/**
  * 无认证 API 请求
  * 用于插件自带 WebUI 页面调用后端 router.getNoAuth / router.postNoAuth 注册的路由
  */

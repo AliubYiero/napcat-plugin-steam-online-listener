@@ -17,8 +17,9 @@ import {
 import { escapeXml } from '../utils/svg-render';
 import { falsePositiveService } from './false-positive.service';
 import { gameNameService } from './game-name.service.js';
-import { steamService } from './steam.service';
+import { steamAvatarService } from './steam-avatar.service';
 import { steamBindService } from './steam-bind.service';
+import { steamService } from './steam.service';
 import {
     type StatusChange,
     type StatusChanges,
@@ -294,6 +295,9 @@ class SteamPollingService {
                             updatableSummaries,
                             resolution.confirmed,
                         );
+
+                        // 头像地址变化时写回绑定, 供 WebUI 代理使用
+                        steamAvatarService.syncFaces(playerSummaries);
                     }
                 } catch (error) {
                     pluginState.logger.error(

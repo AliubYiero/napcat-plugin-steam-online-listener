@@ -30,8 +30,9 @@ import type { FromInfo, PluginConfig } from '../types';
 import { getChinaDateParts } from '../utils/format';
 import { gameNameService } from './game-name.service';
 import { sessionConfigService } from './sessionConfigService';
-import { steamService } from './steam.service';
+import { steamAvatarService } from './steam-avatar.service';
 import { steamBindService } from './steam-bind.service';
+import { steamService } from './steam.service';
 
 /**
  * 获取中国时区（UTC+8）的时间戳字符串
@@ -214,6 +215,67 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 error,
             );
             res.json({ code: -1, message: '获取失败' });
+        }
+    });
+
+    /** 获取 Steam 头像（同源代理, 规避宿主 CSP 对外链图片的拦截） */
+    router.getNoAuth('/steam-avatar/:steamId', async (req, res) => {
+        try {
+            const steamId = req.params?.steamId;
+            if (!steamId || !/^\d{17}$/.test(steamId)) {
+                return res.status(400).json({
+                    code: -1,
+                    message: 'Steam ID 格式错误',
+                });
+            }
+
+            const ifNoneMatch = req.headers['if-none-match'];
+            const result = await steamAvatarService.getAvatar(
+                steamId,
+                typeof ifNoneMatch === 'string'
+                    ? ifNoneMatch
+                    : undefined,
+            );
+
+            switch (result.kind) {
+                case 'not-found':
+                    return res.status(404).json({
+                        code: -1,
+                        message: '头像不存在',
+                    });
+                case 'upstream-error':
+                    return res.status(502).json({
+                        code: -1,
+                        message: '头像获取失败',
+                    });
+                case 'not-modified':
+                    res.setHeader('ETag', result.etag);
+                    res.setHeader(
+                        'Cache-Control',
+                        'public, max-age=300',
+                    );
+                    return res.status(304).send('');
+                case 'image':
+                    res.setHeader(
+                        'Content-Type',
+                        result.image.contentType,
+                    );
+                    res.setHeader('ETag', result.image.etag);
+                    res.setHeader(
+                        'Cache-Control',
+                        'public, max-age=300',
+                    );
+                    return res.send(result.image.buffer);
+            }
+        } catch (error) {
+            pluginState.logger.error(
+                '获取 Steam 头像失败:',
+                error,
+            );
+            res.status(500).json({
+                code: -1,
+                message: '获取失败',
+            });
         }
     });
 

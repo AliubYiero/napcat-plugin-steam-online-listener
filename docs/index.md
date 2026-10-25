@@ -21,6 +21,7 @@ Steam 在线状态监听插件的文档导航。范式体系的定位、强度�
 | --- | --- |
 | [adr/0001-plugin-switch-and-command-prefix.md](./adr/0001-plugin-switch-and-command-prefix.md) | 插件级启停交宿主 (去掉 `enabled`), 指令前缀内部化 (`COMMAND_PREFIX`) |
 | [adr/0002-group-only-and-session-config.md](./adr/0002-group-only-and-session-config.md) | 仅群聊功能, 权限裁剪为三档, 会话级启停由 store 承载 |
+| [adr/0003-webui-avatar-proxy.md](./adr/0003-webui-avatar-proxy.md) | WebUI 头像走后端同源代理, 不直连 Steam CDN |
 
 判据与写法见 [development-pattern.md](./development-pattern.md) 的"架构决策记录 (ADR) 纪律"。
 
