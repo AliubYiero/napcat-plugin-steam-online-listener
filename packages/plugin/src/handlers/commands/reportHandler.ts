@@ -46,7 +46,7 @@ export const reportHandler: InstructionHandler = async (
             await sendReply(
                 ctx,
                 event,
-                `${dateLabel} 暂无状态记录或当前来源无绑定的 Steam 用户`,
+                `${dateLabel} 暂无可展示的活动记录`,
             );
         }
         // 成功时 Service 已推送图片，无需额外回复

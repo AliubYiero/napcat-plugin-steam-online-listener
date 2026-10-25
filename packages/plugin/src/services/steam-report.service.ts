@@ -389,7 +389,7 @@ class SteamReportService {
 
             if (reportUsers.length === 0) {
                 pluginState.logger.info(
-                    '[SteamReportService] 无有效用户数据，跳过报告生成',
+                    '[SteamReportService] 昨日无游玩记录，跳过报告生成',
                 );
                 return;
             }
@@ -485,6 +485,8 @@ class SteamReportService {
                 customEndTime,
             );
 
+            if (durations.playedDuration === 0) continue;
+
             const bindItem = bindData.find(
                 (item) => item.steamId === steamId,
             );
@@ -492,6 +494,7 @@ class SteamReportService {
 
             const playedGame: ReportPlayedGame[] = [];
             for (const [gameId, duration] of durations.games) {
+                if (duration === 0) continue;
                 const name =
                     (await gameNameService.getFormattedGameName(
                         gameId,
@@ -506,8 +509,7 @@ class SteamReportService {
                 personName,
                 onlineDuration: durations.onlineDuration,
                 playedDuration: durations.playedDuration,
-                playedGame:
-                    playedGame.length > 0 ? playedGame : undefined,
+                playedGame,
             });
         }
 
@@ -781,7 +783,7 @@ class SteamReportService {
 
             if (reportUsers.length === 0) {
                 pluginState.logger.info(
-                    '[SteamReportService] 无有效用户数据',
+                    '[SteamReportService] 该日期无游玩记录',
                 );
                 return false;
             }
